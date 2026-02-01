@@ -4,6 +4,8 @@ import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLogout } from '@/lib/useLogout';
 import { useEffect } from 'react';
+import Link from 'next/link';
+
 
 export default function AppTopBar() {
     const router = useRouter();
@@ -155,6 +157,10 @@ export default function AppTopBar() {
                         </a>
 
                         <div className="dropdown-menu dropdown-menu-end me-lg-3 fs-11px">
+                            <Link href="/profile" className="menu-link">
+                                Profile
+                                <i className="bi bi-gear ms-auto text-theme fs-16px"></i>
+                            </Link>
                             <button
                                 className="dropdown-item d-flex align-items-center"
                                 onClick={openLogoutModal}

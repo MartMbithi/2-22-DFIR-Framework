@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import AuthNav from '@/components/AuthNav';
 import AuthGuard from '@/components/AuthGuard';
+import AppSidebar from '@/components/AppSidebar';
+import AppTopBar from '@/components/AppTopBar';
 import { apiFetch } from '@/lib/api';
 import { checkPassword, passwordStrength } from '@/lib/passwordPolicy';
 import { logout } from '@/lib/auth';
@@ -22,13 +23,13 @@ export default function ProfilePage() {
 
     const [user, setUser] = useState<User | null>(null);
 
-    /* ---------------- EMAIL ---------------- */
+    /* ---------- EMAIL ---------- */
     const [email, setEmail] = useState('');
     const [emailSaving, setEmailSaving] = useState(false);
     const [emailMessage, setEmailMessage] = useState<string | null>(null);
     const [emailError, setEmailError] = useState<string | null>(null);
 
-    /* ---------------- PASSWORD ---------------- */
+    /* ---------- PASSWORD ---------- */
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -36,7 +37,7 @@ export default function ProfilePage() {
     const [passwordSaving, setPasswordSaving] = useState(false);
     const [passwordError, setPasswordError] = useState<string | null>(null);
 
-    /* ================= LOAD USER ================= */
+    /* ================= LOAD ================= */
 
     useEffect(() => {
         async function load() {
@@ -84,7 +85,7 @@ export default function ProfilePage() {
             return;
         }
 
-        if (newPassword !== confirmPassword) {
+        if (!passwordsMatch) {
             setPasswordError('Passwords do not match.');
             return;
         }
@@ -105,179 +106,206 @@ export default function ProfilePage() {
                 })
             });
 
-            // ✅ ONLY logout if backend confirms success
             if (res?.detail === 'Password updated successfully') {
                 logout();
                 router.replace('/login');
             } else {
                 setPasswordError('Unexpected response from server.');
             }
-
-        } catch (err: any) {
-            // ❌ NO LOGOUT HERE
+        } catch {
             setPasswordError('Current password is incorrect.');
         } finally {
             setPasswordSaving(false);
         }
     }
 
-
-    if (!user) return <div className="p-8">Loading…</div>;
+    if (!user) {
+        return <div className="p-6">Loading profile context…</div>;
+    }
 
     return (
         <AuthGuard>
-            <AuthNav />
+            <div id="app" className="app app-sidebar-fixed">
 
-            <main className="container py-10 max-w-5xl space-y-10">
+                <AppSidebar />
+                <AppTopBar />
 
-                {/* HEADER */}
-                <section>
-                    <h1 className="text-2xl font-extrabold">Profile</h1>
-                    <p className="text-sm text-textMuted">
-                        Manage your account credentials
-                    </p>
-                </section>
+                <div id="content" className="app-content">
+                    <div className="container-fluid">
 
-                {/* INLINE FORMS */}
-                <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* ================= HEADER ================= */}
+                        <div className="row mb-4">
+                            <div className="col">
+                                <h1 className="mb-1">Profile</h1>
+                                <p className="text-body text-opacity-75 small">
+                                    Analyst account credentials & security controls
+                                </p>
+                            </div>
+                        </div>
 
-                    {/* EMAIL */}
-                    <div className="border rounded-lg bg-card p-6 space-y-4">
-                        <h2 className="font-semibold">Email Address</h2>
+                        <div className="row g-4">
 
-                        <form onSubmit={updateEmail} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    Email
-                                </label>
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
-                                    required
-                                    className="w-full border rounded px-3 py-2 bg-background"
-                                />
+                            {/* ================= EMAIL ================= */}
+                            <div className="col-lg-6">
+                                <div className="card h-100">
+                                    <div className="card-body">
+                                        <h5>Email Address</h5>
+
+                                        <form onSubmit={updateEmail} className="mt-3">
+                                            <div className="mb-3">
+                                                <label className="form-label small">
+                                                    Account Email
+                                                </label>
+                                                <input
+                                                    type="email"
+                                                    value={email}
+                                                    onChange={e => setEmail(e.target.value)}
+                                                    required
+                                                    className="form-control"
+                                                />
+                                            </div>
+
+                                            {emailMessage && (
+                                                <div className="alert alert-success small">
+                                                    {emailMessage}
+                                                </div>
+                                            )}
+
+                                            {emailError && (
+                                                <div className="alert alert-danger small">
+                                                    {emailError}
+                                                </div>
+                                            )}
+
+                                            <button
+                                                disabled={emailSaving}
+                                                className="btn btn-outline-theme btn-sm"
+                                            >
+                                                {emailSaving ? 'Saving…' : 'Update Email'}
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <HudArrows />
+                                </div>
                             </div>
 
-                            {emailMessage && (
-                                <div className="rounded bg-green-50 text-green-700 px-3 py-2 text-sm">
-                                    {emailMessage}
-                                </div>
-                            )}
+                            {/* ================= PASSWORD ================= */}
+                            <div className="col-lg-6">
+                                <div className="card h-100">
+                                    <div className="card-body">
+                                        <h5>Change Password</h5>
 
-                            {emailError && (
-                                <div className="rounded bg-red-50 text-red-700 px-3 py-2 text-sm">
-                                    {emailError}
-                                </div>
-                            )}
+                                        <form onSubmit={updatePassword} className="mt-3">
 
-                            <button
-                                disabled={emailSaving}
-                                className="px-4 py-2 bg-primary text-textInverse rounded disabled:opacity-50"
-                            >
-                                {emailSaving ? 'Saving…' : 'Update Email'}
-                            </button>
-                        </form>
+                                            <div className="mb-3">
+                                                <label className="form-label small">
+                                                    Current Password
+                                                </label>
+                                                <input
+                                                    type="password"
+                                                    value={currentPassword}
+                                                    onChange={e => setCurrentPassword(e.target.value)}
+                                                    className="form-control"
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div className="mb-3">
+                                                <label className="form-label small">
+                                                    New Password
+                                                </label>
+                                                <input
+                                                    type="password"
+                                                    value={newPassword}
+                                                    onChange={e => setNewPassword(e.target.value)}
+                                                    className="form-control"
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div className="mb-3">
+                                                <label className="form-label small">
+                                                    Confirm New Password
+                                                </label>
+                                                <input
+                                                    type="password"
+                                                    value={confirmPassword}
+                                                    onChange={e => setConfirmPassword(e.target.value)}
+                                                    className="form-control"
+                                                    required
+                                                />
+                                            </div>
+
+                                            {/* STRENGTH BAR */}
+                                            <div className="mb-3">
+                                                <div className="d-flex gap-1 mb-2">
+                                                    {[1, 2, 3, 4, 5].map(i => (
+                                                        <div
+                                                            key={i}
+                                                            className={`flex-fill h-5px rounded ${strength >= i
+                                                                    ? strength <= 2
+                                                                        ? 'bg-danger'
+                                                                        : strength <= 4
+                                                                            ? 'bg-warning'
+                                                                            : 'bg-success'
+                                                                    : 'bg-secondary bg-opacity-25'
+                                                                }`}
+                                                        />
+                                                    ))}
+                                                </div>
+
+                                                <ul className="list-unstyled small mb-0">
+                                                    <Rule ok={policy.checks.length} text="Minimum length" />
+                                                    <Rule ok={policy.checks.upper} text="Uppercase letter" />
+                                                    <Rule ok={policy.checks.lower} text="Lowercase letter" />
+                                                    <Rule ok={policy.checks.number} text="Number" />
+                                                    <Rule ok={policy.checks.symbol} text="Symbol" />
+                                                </ul>
+                                            </div>
+
+                                            {passwordError && (
+                                                <div className="alert alert-danger small">
+                                                    {passwordError}
+                                                </div>
+                                            )}
+
+                                            <button
+                                                disabled={!policy.valid || !passwordsMatch || passwordSaving}
+                                                className="btn btn-outline-theme btn-sm"
+                                            >
+                                                {passwordSaving ? 'Saving…' : 'Update Password'}
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <HudArrows />
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
-
-                    {/* PASSWORD */}
-                    <div className="border rounded-lg bg-card p-6 space-y-4">
-                        <h2 className="font-semibold">Change Password</h2>
-
-                        <form onSubmit={updatePassword} className="space-y-4">
-
-                            <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    Current Password
-                                </label>
-                                <input
-                                    type="password"
-                                    value={currentPassword}
-                                    onChange={e => setCurrentPassword(e.target.value)}
-                                    required
-                                    className="w-full border rounded px-3 py-2 bg-background"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    New Password
-                                </label>
-                                <input
-                                    type="password"
-                                    value={newPassword}
-                                    onChange={e => setNewPassword(e.target.value)}
-                                    required
-                                    className="w-full border rounded px-3 py-2 bg-background"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    Confirm New Password
-                                </label>
-                                <input
-                                    type="password"
-                                    value={confirmPassword}
-                                    onChange={e => setConfirmPassword(e.target.value)}
-                                    required
-                                    className="w-full border rounded px-3 py-2 bg-background"
-                                />
-                            </div>
-
-                            {/* STRENGTH */}
-                            <div className="space-y-2">
-                                <div className="flex gap-1">
-                                    {[1, 2, 3, 4, 5].map(i => (
-                                        <div
-                                            key={i}
-                                            className={`h-1 flex-1 rounded ${strength >= i
-                                                ? strength <= 2
-                                                    ? 'bg-red-500'
-                                                    : strength <= 4
-                                                        ? 'bg-yellow-500'
-                                                        : 'bg-green-600'
-                                                : 'bg-gray-300'
-                                                }`}
-                                        />
-                                    ))}
-                                </div>
-
-                                <ul className="text-xs space-y-1">
-                                    <Rule ok={policy.checks.length} text="Minimum length" />
-                                    <Rule ok={policy.checks.upper} text="Uppercase letter" />
-                                    <Rule ok={policy.checks.lower} text="Lowercase letter" />
-                                    <Rule ok={policy.checks.number} text="Number" />
-                                    <Rule ok={policy.checks.symbol} text="Symbol" />
-                                </ul>
-                            </div>
-
-                            {passwordError && (
-                                <div className="rounded bg-red-50 text-red-700 px-3 py-2 text-sm">
-                                    {passwordError}
-                                </div>
-                            )}
-
-                            <button
-                                disabled={!policy.valid || !passwordsMatch || passwordSaving}
-                                className="px-4 py-2 bg-primary text-textInverse rounded disabled:opacity-50"
-                            >
-                                {passwordSaving ? 'Saving…' : 'Update Password'}
-                            </button>
-                        </form>
-                    </div>
-                </section>
-            </main>
+                </div>
+            </div>
         </AuthGuard>
     );
 }
 
-/* ================= HELPERS ================= */
+/* ================= HUD ================= */
 
 function Rule({ ok, text }: { ok: boolean; text: string }) {
     return (
-        <li className={ok ? 'text-green-600' : 'text-textMuted'}>
+        <li className={ok ? 'text-success' : 'text-body text-opacity-50'}>
             {ok ? '✓' : '•'} {text}
         </li>
+    );
+}
+
+function HudArrows() {
+    return (
+        <div className="card-arrow">
+            <div className="card-arrow-top-left"></div>
+            <div className="card-arrow-top-right"></div>
+            <div className="card-arrow-bottom-left"></div>
+            <div className="card-arrow-bottom-right"></div>
+        </div>
     );
 }

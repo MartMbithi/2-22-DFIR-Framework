@@ -1,5 +1,10 @@
 'use client';
 
+/*
+ *   Crafted On Fri Jan 30 2026
+ *   Devlan Solutions LTD — DFIR-AI
+ */
+
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import AuthGuard from '@/components/AuthGuard';
@@ -22,20 +27,19 @@ type Upload = {
     uploaded_at: string;
 };
 
-type Job = {
-    job_id: string;
-    job_status: string;
-    created_at: string;
-    job_progress?: string;
-    job_stage?: string;
-    reports?: Report[];
-};
-
 type Report = {
     report_id: string;
     report_type: string;
     report_generated_at: string;
-    download_url: string;
+};
+
+type Job = {
+    job_id: string;
+    job_status: 'queued' | 'running' | 'completed' | 'failed';
+    created_at: string;
+    job_progress?: string;
+    job_stage?: string;
+    reports?: Report[];
 };
 
 /* ================= CONFIG ================= */
@@ -56,12 +60,10 @@ export default function CaseDetailPage() {
     const [page, setPage] = useState(1);
     const [selected, setSelected] = useState<Set<string>>(new Set());
 
-    /* Upload modal */
     const [uploadOpen, setUploadOpen] = useState(false);
     const [files, setFiles] = useState<File[]>([]);
     const [uploading, setUploading] = useState(false);
 
-    /* Delete upload modal */
     const [deleteTarget, setDeleteTarget] = useState<Upload | null>(null);
     const [deleting, setDeleting] = useState(false);
 
@@ -75,9 +77,10 @@ export default function CaseDetailPage() {
 
         const enrichedJobs = j.map((job: Job) => ({
             ...job,
-            reports: r.filter((rep: Report) =>
-                new Date(rep.report_generated_at) >= new Date(job.created_at)
-            )
+            reports: r.filter(
+                (rep: Report) =>
+                    new Date(rep.report_generated_at) >= new Date(job.created_at)
+            ),
         }));
 
         setCaseData(c);
@@ -92,37 +95,18 @@ export default function CaseDetailPage() {
     /* ================= JOB POLLING ================= */
 
     useEffect(() => {
-        const hasRunning = jobs.some(j =>
-            j.job_status === 'queued' || j.job_status === 'running'
-        );
-
-        if (!hasRunning) return;
+        if (!jobs.some(j => j.job_status === 'queued' || j.job_status === 'running')) {
+            return;
+        }
 
         const interval = setInterval(async () => {
             try {
                 const refreshed = await apiFetch(`/jobs?case_id=${case_id}`);
-
-                const enriched = await Promise.all(
-                    refreshed.map(async (job: Job) => {
-                        try {
-                            const progress = await apiFetch(`/jobs/${job.job_id}/progress`);
-                            const stage = await apiFetch(`/jobs/${job.job_id}/stages`);
-                            return {
-                                ...job,
-                                job_progress: progress?.progress,
-                                job_stage: stage?.current_stage
-                            };
-                        } catch {
-                            return job;
-                        }
-                    })
-                );
-
                 setJobs(prev =>
-                    prev.map(j => enriched.find(e => e.job_id === j.job_id) || j)
+                    prev.map(j => refreshed.find(r => r.job_id === j.job_id) || j)
                 );
             } catch {
-                /* polling must never break UI */
+                /* silent */
             }
         }, POLL_INTERVAL);
 
@@ -145,6 +129,37 @@ export default function CaseDetailPage() {
 
     useEffect(() => setPage(1), [search]);
 
+    /* ================= SECURE REPORT DOWNLOAD ================= */
+
+    async function downloadReport(reportId: string) {
+        const res = await fetch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/reports/${reportId}/download`,
+            {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            }
+        );
+
+        if (!res.ok) {
+            alert('Failed to download report');
+            return;
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `dfir-report-${reportId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        window.URL.revokeObjectURL(url);
+    }
+
     /* ================= UPLOAD ================= */
 
     async function uploadFiles(e: React.FormEvent) {
@@ -152,7 +167,6 @@ export default function CaseDetailPage() {
         if (!files.length) return;
 
         setUploading(true);
-
         try {
             for (const file of files) {
                 const form = new FormData();
@@ -163,9 +177,9 @@ export default function CaseDetailPage() {
                     {
                         method: 'POST',
                         headers: {
-                            Authorization: `Bearer ${localStorage.getItem('token')}`
+                            Authorization: `Bearer ${localStorage.getItem('token')}`,
                         },
-                        body: form
+                        body: form,
                     }
                 );
             }
@@ -186,7 +200,7 @@ export default function CaseDetailPage() {
         setDeleting(true);
         try {
             await apiFetch(`/cases/uploads/${deleteTarget.upload_id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
             });
             setDeleteTarget(null);
             loadBase();
@@ -205,8 +219,8 @@ export default function CaseDetailPage() {
             body: JSON.stringify({
                 case_id,
                 upload_ids: Array.from(selected),
-                job_type: 'dfir_run'
-            })
+                job_type: 'dfir_run',
+            }),
         });
 
         setSelected(new Set());
@@ -227,7 +241,7 @@ export default function CaseDetailPage() {
                 <div id="content" className="app-content">
                     <div className="container-fluid">
 
-                        {/* ===== HEADER ===== */}
+                        {/* HEADER */}
                         <div className="row mb-4">
                             <div className="col">
                                 <h1 className="mb-1">{caseData.case_name}</h1>
@@ -239,7 +253,7 @@ export default function CaseDetailPage() {
 
                         <div className="row g-4">
 
-                            {/* ===== UPLOADS ===== */}
+                            {/* UPLOADS */}
                             <div className="col-lg-8">
                                 <div className="card h-100">
                                     <div className="card-body">
@@ -324,7 +338,7 @@ export default function CaseDetailPage() {
                                 </div>
                             </div>
 
-                            {/* ===== JOB ACTIVITY ===== */}
+                            {/* JOB ACTIVITY */}
                             <div className="col-lg-4">
                                 <div className="card h-100">
                                     <div className="card-body">
@@ -342,50 +356,35 @@ export default function CaseDetailPage() {
                                                     {j.job_id}
                                                 </p>
 
-                                                <p className="mb-1">
+                                                <p className="mb-2">
                                                     Status:{' '}
                                                     <span className={
                                                         j.job_status === 'completed'
                                                             ? 'text-success'
                                                             : j.job_status === 'failed'
                                                                 ? 'text-danger'
-                                                                : 'text-warning'
+                                                                : j.job_status === 'queued'
+                                                                    ? 'text-primary'
+                                                                    : 'text-warning'
                                                     }>
                                                         {j.job_status}
                                                     </span>
                                                 </p>
 
-                                                {j.job_stage && (
-                                                    <p className="text-body text-opacity-50 text-xs">
-                                                        Stage: {j.job_stage}
-                                                    </p>
-                                                )}
-
-                                                {j.job_progress && (
-                                                    <div className="progress h-5px mb-2">
-                                                        <div
-                                                            className="progress-bar bg-theme"
-                                                            style={{ width: j.job_progress }}
-                                                        ></div>
-                                                    </div>
-                                                )}
-
                                                 {j.reports && j.reports.length > 0 && (
-                                                    <div className="pt-2">
-                                                        <button
-                                                            className="btn btn-sm btn-outline-theme"
-                                                            onClick={() => {
-                                                                const latest = [...j.reports!].sort(
-                                                                    (a, b) =>
-                                                                        new Date(b.report_generated_at).getTime() -
-                                                                        new Date(a.report_generated_at).getTime()
-                                                                )[0];
-                                                                window.location.href = latest.download_url;
-                                                            }}
-                                                        >
-                                                            Download Report
-                                                        </button>
-                                                    </div>
+                                                    <button
+                                                        className="btn btn-sm btn-outline-theme"
+                                                        onClick={() => {
+                                                            const latest = [...j.reports!].sort(
+                                                                (a, b) =>
+                                                                    new Date(b.report_generated_at).getTime() -
+                                                                    new Date(a.report_generated_at).getTime()
+                                                            )[0];
+                                                            downloadReport(latest.report_id);
+                                                        }}
+                                                    >
+                                                        Download Report
+                                                    </button>
                                                 )}
                                             </div>
                                         ))}
@@ -398,184 +397,11 @@ export default function CaseDetailPage() {
                     </div>
                 </div>
             </div>
-
-            {/* ===== UPLOAD MODAL ===== */}
-            {/* ===== UPLOAD MODAL ===== */}
-            {uploadOpen && (
-                <div className="modal fade show d-block" tabIndex={-1}>
-                    <div className="modal-dialog modal-dialog-centered modal-lg">
-                        <div className="modal-content">
-
-                            <form onSubmit={uploadFiles}>
-                                {/* HEADER */}
-                                <div className="modal-header">
-                                    <h5 className="modal-title">
-                                        Ingest Forensic Artifacts
-                                    </h5>
-                                    <button
-                                        type="button"
-                                        className="btn-close"
-                                        onClick={() => setUploadOpen(false)}
-                                    ></button>
-                                </div>
-
-                                {/* BODY */}
-                                <div className="modal-body">
-
-                                    <p className="small text-body text-opacity-75 mb-3">
-                                        Select one or more artifacts to ingest into this case.
-                                        Files are preserved verbatim and cryptographically
-                                        processed after upload.
-                                    </p>
-
-                                    {/* BOOTSTRAP FILE INPUT */}
-                                    <div className="mb-4">
-                                        <label className="form-label fw-semibold">
-                                            Artifact Files
-                                        </label>
-
-                                        <input
-                                            type="file"
-                                            className="form-control"
-                                            multiple
-                                            onChange={e =>
-                                                setFiles(Array.from(e.target.files || []))
-                                            }
-                                        />
-
-                                        <div className="form-text">
-                                            Supported: disk images, memory dumps, logs,
-                                            archives, binaries
-                                        </div>
-                                    </div>
-
-                                    {/* SELECTED FILES PREVIEW */}
-                                    {files.length > 0 && (
-                                        <div className="border rounded p-3 bg-body bg-opacity-25">
-                                            <div className="fw-semibold small mb-2">
-                                                Files staged for ingestion
-                                            </div>
-
-                                            <ul className="list-unstyled small mb-0">
-                                                {files.map((file, idx) => (
-                                                    <li
-                                                        key={idx}
-                                                        className="d-flex justify-content-between align-items-center mb-1"
-                                                    >
-                                                        <span className="font-mono text-truncate">
-                                                            {file.name}
-                                                        </span>
-                                                        <span className="text-body text-opacity-50">
-                                                            {(file.size / 1024 / 1024).toFixed(2)} MB
-                                                        </span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
-
-                                </div>
-
-                                {/* FOOTER */}
-                                <div className="modal-footer">
-                                    <button
-                                        type="button"
-                                        className="btn btn-outline-secondary"
-                                        onClick={() => setUploadOpen(false)}
-                                        disabled={uploading}
-                                    >
-                                        Cancel
-                                    </button>
-
-                                    <button
-                                        type="submit"
-                                        className="btn btn-outline-theme"
-                                        disabled={uploading || files.length === 0}
-                                    >
-                                        {uploading ? 'Ingesting…' : 'Ingest Artifacts'}
-                                    </button>
-                                </div>
-                            </form>
-
-                            {/* HUD ARROWS */}
-                            <div className="card-arrow">
-                                <div className="card-arrow-top-left"></div>
-                                <div className="card-arrow-top-right"></div>
-                                <div className="card-arrow-bottom-left"></div>
-                                <div className="card-arrow-bottom-right"></div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-            )}
-
-
-            {/* ===== DELETE MODAL ===== */}
-            {deleteTarget && (
-                <Modal
-                    title="Confirm Artifact Deletion"
-                    danger
-                    onClose={() => setDeleteTarget(null)}
-                >
-                    <p className="small">
-                        You are about to permanently delete the artifact:
-                    </p>
-                    <p className="font-mono text-xs">
-                        {deleteTarget.upload_filename}
-                    </p>
-                    <p className="small text-body text-opacity-75">
-                        This action removes the artifact from the evidentiary chain
-                        and cannot be undone.
-                    </p>
-
-                    <div className="text-end mt-3">
-                        <button
-                            className="btn btn-outline-danger"
-                            disabled={deleting}
-                            onClick={confirmDeleteUpload}
-                        >
-                            {deleting ? 'Deleting…' : 'Delete'}
-                        </button>
-                    </div>
-                </Modal>
-            )}
         </AuthGuard>
     );
 }
 
-/* ================= SHARED ================= */
-
-function Modal({
-    title,
-    children,
-    onClose,
-    danger
-}: {
-    title: string;
-    children: React.ReactNode;
-    onClose: () => void;
-    danger?: boolean;
-}) {
-    return (
-        <div className="modal fade show d-block" tabIndex={-1}>
-            <div className="modal-dialog modal-dialog-centered">
-                <div className="modal-content">
-                    <div className="modal-header">
-                        <h5 className={`modal-title ${danger ? 'text-danger' : ''}`}>
-                            {title}
-                        </h5>
-                        <button className="btn-close" onClick={onClose}></button>
-                    </div>
-                    <div className="modal-body">
-                        {children}
-                    </div>
-                    <HudArrows />
-                </div>
-            </div>
-        </div>
-    );
-}
+/* ================= HUD ================= */
 
 function HudArrows() {
     return (

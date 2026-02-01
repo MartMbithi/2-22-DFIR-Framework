@@ -16,7 +16,7 @@ export default function AppSidebar() {
 
     return (
         <>
-            {/* BEGIN #sidebar */}
+            {/* ================= SIDEBAR ================= */}
             <div id="sidebar" className="app-sidebar">
                 <div
                     className="app-sidebar-content"
@@ -25,15 +25,15 @@ export default function AppSidebar() {
                 >
                     <div className="menu">
 
-                        {/* ================= DFIR CORE ================= */}
+                        {/* ================= CORE ================= */}
                         <div className="menu-header">DFIR Operations</div>
 
                         <div className={`menu-item ${isActive('/dashboard') ? 'active' : ''}`}>
                             <Link href="/dashboard" className="menu-link">
                                 <span className="menu-icon">
-                                    <i className="bi bi-cpu"></i>
+                                    <i className="bi bi-speedometer2"></i>
                                 </span>
-                                <span className="menu-text">DFIR Ops</span>
+                                <span className="menu-text">Dashboard</span>
                             </Link>
                         </div>
 
@@ -46,12 +46,12 @@ export default function AppSidebar() {
                             </Link>
                         </div>
 
-                        <div className={`menu-item ${isActive('/evidence') ? 'active' : ''}`}>
-                            <Link href="/evidence" className="menu-link">
+                        <div className={`menu-item ${isActive('/artifacts') ? 'active' : ''}`}>
+                            <Link href="/artifacts" className="menu-link">
                                 <span className="menu-icon">
                                     <i className="bi bi-hdd-stack"></i>
                                 </span>
-                                <span className="menu-text">Evidence</span>
+                                <span className="menu-text">Artifacts</span>
                             </Link>
                         </div>
 
@@ -60,16 +60,7 @@ export default function AppSidebar() {
                                 <span className="menu-icon">
                                     <i className="bi bi-cpu-fill"></i>
                                 </span>
-                                <span className="menu-text">Analysis Jobs</span>
-                            </Link>
-                        </div>
-
-                        <div className={`menu-item ${isActive('/timelines') ? 'active' : ''}`}>
-                            <Link href="/timelines" className="menu-link">
-                                <span className="menu-icon">
-                                    <i className="bi bi-clock-history"></i>
-                                </span>
-                                <span className="menu-text">Timelines</span>
+                                <span className="menu-text">Jobs</span>
                             </Link>
                         </div>
 
@@ -101,16 +92,7 @@ export default function AppSidebar() {
                                 <span className="menu-icon">
                                     <i className="bi bi-people"></i>
                                 </span>
-                                <span className="menu-text">Users & Roles</span>
-                            </Link>
-                        </div>
-
-                        <div className={`menu-item ${isActive('/audit') ? 'active' : ''}`}>
-                            <Link href="/audit" className="menu-link">
-                                <span className="menu-icon">
-                                    <i className="bi bi-shield-check"></i>
-                                </span>
-                                <span className="menu-text">Audit Logs</span>
+                                <span className="menu-text">Users</span>
                             </Link>
                         </div>
 
@@ -119,7 +101,7 @@ export default function AppSidebar() {
                                 <span className="menu-icon">
                                     <i className="bi bi-gear"></i>
                                 </span>
-                                <span className="menu-text">System Settings</span>
+                                <span className="menu-text">Settings</span>
                             </Link>
                         </div>
 
@@ -127,13 +109,12 @@ export default function AppSidebar() {
                 </div>
             </div>
 
-            {/* BEGIN mobile sidebar backdrop */}
+            {/* ================= MOBILE BACKDROP ================= */}
             <button
                 className="app-sidebar-mobile-backdrop"
                 data-toggle-target=".app"
                 data-toggle-class="app-sidebar-mobile-toggled"
             ></button>
-            {/* END mobile sidebar backdrop */}
         </>
     );
 }

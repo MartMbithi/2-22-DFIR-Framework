@@ -1,10 +1,10 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import AuthNav from '@/components/AuthNav';
-import AuthGuard from '@/components/AuthGuard';
+import DashboardLayout from '@/app/dashboard-layout';
 import { apiFetch } from '@/lib/api';
+
+/* ================= PAGE ================= */
 
 export default function OrganizationPage() {
     const router = useRouter();
@@ -14,6 +14,8 @@ export default function OrganizationPage() {
     const [createdAt, setCreatedAt] = useState('');
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
+
+    /* ================= LOAD ================= */
 
     useEffect(() => {
         async function load() {
@@ -30,6 +32,8 @@ export default function OrganizationPage() {
         load();
     }, []);
 
+    /* ================= SAVE ================= */
+
     async function save(e: React.FormEvent) {
         e.preventDefault();
         setSaving(true);
@@ -39,8 +43,8 @@ export default function OrganizationPage() {
             await apiFetch('/organizations/me', {
                 method: 'PUT',
                 body: JSON.stringify({
-                    organization_name: orgName
-                })
+                    organization_name: orgName,
+                }),
             });
 
             setMessage('Organization updated successfully.');
@@ -52,126 +56,132 @@ export default function OrganizationPage() {
     }
 
     return (
-        <AuthGuard>
-            <AuthNav />
+        <DashboardLayout>
 
-            <main className="container py-12 space-y-12">
-
-                {/* ================= HEADER ================= */}
-                <section className="space-y-1">
-                    <h1 className="text-2xl font-extrabold text-textPrimary">
-                        Organization
-                    </h1>
-                    <p className="text-sm text-textMuted">
-                        Manage organization-level settings and operational context
+            {/* ================= HEADER ================= */}
+            <div className="row mb-4">
+                <div className="col">
+                    <h1 className="mb-1">Organization</h1>
+                    <p className="text-body text-opacity-75">
+                        Organization-level configuration and operational ownership
                     </p>
-                </section>
+                </div>
+            </div>
 
-                {/* ================= OVERVIEW ================= */}
-                <section className="border rounded-lg p-6 bg-card space-y-4">
-                    <h2 className="font-semibold text-textPrimary">
-                        Overview
-                    </h2>
+            {/* ================= OVERVIEW ================= */}
+            <div className="row mb-4">
+                <div className="col-lg-12">
+                    <div className="card">
+                        <div className="card-body">
+                            <h5 className="mb-3">Overview</h5>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                        <div>
-                            <p className="text-textMuted">Organization ID</p>
-                            <p className="font-mono break-all text-textPrimary">
-                                {orgId}
-                            </p>
+                            <div className="row small">
+                                <div className="col-md-6 mb-3">
+                                    <div className="text-body text-opacity-50 mb-1">
+                                        Organization ID
+                                    </div>
+                                    <div className="font-monospace text-break">
+                                        {orgId}
+                                    </div>
+                                </div>
+
+                                <div className="col-md-6 mb-3">
+                                    <div className="text-body text-opacity-50 mb-1">
+                                        Created At
+                                    </div>
+                                    <div>
+                                        {new Date(createdAt).toLocaleString()}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div>
-                            <p className="text-textMuted">Created</p>
-                            <p className="text-textPrimary">
-                                {new Date(createdAt).toLocaleString()}
-                            </p>
-                        </div>
+                        <HudArrows />
                     </div>
-                </section>
+                </div>
+            </div>
 
-                {/* ================= SETTINGS ================= */}
-                <section className="border rounded-lg p-8 bg-card space-y-6">
-                    <h2 className="font-semibold text-textPrimary">
-                        Settings
-                    </h2>
+            {/* ================= SETTINGS ================= */}
+            <div className="row mb-4">
+                <div className="col-lg-12">
+                    <div className="card">
+                        <div className="card-body">
+                            <h5 className="mb-3">Settings</h5>
 
-                    {/* INLINE FORM */}
-                    <form
-                        onSubmit={save}
-                        className="
-              flex flex-col
-              md:flex-row
-              md:items-end
-              gap-4
-              max-w-4xl
-            "
-                    >
-                        <div className="flex-1">
-                            <label className="block text-sm font-medium mb-1 text-textPrimary">
-                                Organization Name
-                            </label>
-                            <input
-                                value={orgName}
-                                onChange={e => setOrgName(e.target.value)}
-                                required
-                                className="
-                  w-full
-                  border
-                  rounded
-                  px-3 py-2
-                  bg-background
-                  text-textPrimary
-                  focus:outline-none
-                  focus:ring-2
-                  focus:ring-primary/40
-                "
-                            />
+                            <form onSubmit={save} className="row g-3 align-items-end">
+
+                                <div className="col-md-8">
+                                    <label className="form-label">
+                                        Organization Name
+                                    </label>
+                                    <input
+                                        className="form-control"
+                                        value={orgName}
+                                        onChange={e => setOrgName(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="col-md-4">
+                                    <button
+                                        type="submit"
+                                        disabled={saving}
+                                        className="btn btn-outline-theme w-100"
+                                    >
+                                        {saving ? 'Saving…' : 'Save Changes'}
+                                    </button>
+                                </div>
+
+                            </form>
+
+                            {message && (
+                                <div className="mt-3 small text-body text-opacity-75">
+                                    {message}
+                                </div>
+                            )}
                         </div>
 
-                        <button
-                            type="submit"
-                            disabled={saving}
-                            className="
-                px-6 py-2
-                rounded
-                bg-primary
-                text-textInverse
-                font-medium
-                disabled:opacity-60
-                transition
-              "
-                        >
-                            {saving ? 'Saving…' : 'Save'}
-                        </button>
-                    </form>
+                        <HudArrows />
+                    </div>
+                </div>
+            </div>
 
-                    {message && (
-                        <p className="text-sm text-textMuted">
-                            {message}
-                        </p>
-                    )}
-                </section>
+            {/* ================= OPERATIONAL CONTEXT ================= */}
+            <div className="row">
+                <div className="col-lg-12">
+                    <div className="card">
+                        <div className="card-body">
+                            <h5 className="mb-3">Operational Context</h5>
 
-                {/* ================= OPERATIONAL CONTEXT ================= */}
-                <section className="border rounded-lg p-6 bg-card space-y-3">
-                    <h2 className="font-semibold text-textPrimary">
-                        Operational Context
-                    </h2>
+                            <p className="small text-body text-opacity-75">
+                                This organization boundary defines ownership and isolation
+                                for all cases, artifacts, jobs, and forensic reports.
+                            </p>
 
-                    <p className="text-sm text-textMuted">
-                        This organization owns all cases, artifacts, jobs, and reports
-                        created within this environment. Access controls and data
-                        isolation are enforced at the organization boundary.
-                    </p>
+                            <p className="small text-body text-opacity-75 mb-0">
+                                All access controls, auditability, and data separation
+                                are enforced at the organization scope.
+                            </p>
+                        </div>
 
-                    <p className="text-sm text-textMuted">
-                        Changes to organization settings affect all users operating
-                        under this organization.
-                    </p>
-                </section>
+                        <HudArrows />
+                    </div>
+                </div>
+            </div>
 
-            </main>
-        </AuthGuard>
+        </DashboardLayout>
+    );
+}
+
+/* ================= HUD ARROWS ================= */
+
+function HudArrows() {
+    return (
+        <div className="card-arrow">
+            <div className="card-arrow-top-left"></div>
+            <div className="card-arrow-top-right"></div>
+            <div className="card-arrow-bottom-left"></div>
+            <div className="card-arrow-bottom-right"></div>
+        </div>
     );
 }
