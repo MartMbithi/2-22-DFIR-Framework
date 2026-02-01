@@ -1,35 +1,39 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/app/dashboard-layout';
 import { apiFetch } from '@/lib/api';
 
 /* ================= TYPES ================= */
 
-type Job = {
-    job_id: string;
-    job_status: 'pending' | 'running' | 'completed' | 'failed';
-    case_id: string;
-};
-
 type Case = {
     case_id: string;
     case_name: string;
+    case_status: string;
+    case_created_at: string;
 };
 
-type Activity = {
-    id: string;
-    timestamp: string;
-    message: string;
+type Job = {
+    job_id: string;
+    case_id: string;
+    job_status: 'pending' | 'queued' | 'running' | 'completed' | 'failed';
+    created_at: string;
 };
 
-type Storage = {
-    used_gb: number;
-    total_gb: number;
+type Report = {
+    report_id: string;
+    case_id: string;
+    report_type: string;
+    report_generated_at: string;
 };
 
-/* ================= DASHBOARD PAGE ================= */
+type Upload = {
+    upload_id: string;
+};
+
+/* ================= PAGE ================= */
 
 export default function DashboardPage() {
     const router = useRouter();
@@ -37,23 +41,41 @@ export default function DashboardPage() {
     const [orgName, setOrgName] = useState('');
     const [cases, setCases] = useState<Case[]>([]);
     const [jobs, setJobs] = useState<Job[]>([]);
-    const [activity, setActivity] = useState<Activity[]>([]);
-    const [storage, setStorage] = useState<Storage | null>(null);
+    const [reports, setReports] = useState<Report[]>([]);
+    const [uploadsByCase, setUploadsByCase] = useState<Record<string, Upload[]>>({});
     const [loading, setLoading] = useState(true);
 
-    /* ---------- INITIAL LOAD ---------- */
+    /* ================= INITIAL LOAD ================= */
+
     useEffect(() => {
         async function load() {
             try {
                 const org = await apiFetch('/organizations/me');
                 setOrgName(org.organization_name);
 
-                setCases(await apiFetch('/cases/'));
-                setJobs(await apiFetch('/jobs/'));
+                const casesData = await apiFetch('/cases/');
+                setCases(casesData);
 
-                // Enable when endpoints are live
-                // setActivity(await apiFetch('/activity/stream'));
-                // setStorage(await apiFetch('/metrics/storage'));
+                const jobsData = await apiFetch('/jobs/');
+                setJobs(jobsData);
+
+                const allReports: Report[] = [];
+                const uploadsMap: Record<string, Upload[]> = {};
+
+                for (const c of casesData) {
+                    try {
+                        const r = await apiFetch(`/reports/case/${c.case_id}`);
+                        allReports.push(...r);
+
+                        const u = await apiFetch(`/cases/${c.case_id}/uploads`);
+                        uploadsMap[c.case_id] = u;
+                    } catch {
+                        uploadsMap[c.case_id] = [];
+                    }
+                }
+
+                setReports(allReports);
+                setUploadsByCase(uploadsMap);
             } catch {
                 router.replace('/onboarding/organization');
             } finally {
@@ -64,119 +86,58 @@ export default function DashboardPage() {
         load();
     }, []);
 
-    /* ---------- REAL-TIME JOB POLLING ---------- */
+    /* ================= JOB POLLING ================= */
+
     useEffect(() => {
         const interval = setInterval(async () => {
             try {
                 setJobs(await apiFetch('/jobs/'));
-            } catch {
-                /* silent fail */
-            }
+            } catch { }
         }, 5000);
 
         return () => clearInterval(interval);
     }, []);
 
-    function BootLine({
-        ts,
-        msg,
-    }: {
-        ts: string;
-        msg: string;
-    }) {
-        return (
-            <div className="d-flex align-items-start mb-1">
-                <span className="me-3 text-body text-opacity-50">
-                    [{ts}]
-                </span>
-                <span>{msg}</span>
-            </div>
-        );
-    }
+    /* ================= DERIVED ================= */
+
+    const caseMap = useMemo(
+        () => Object.fromEntries(cases.map(c => [c.case_id, c])),
+        [cases]
+    );
+
+    const openCases = cases.filter(c => c.case_status !== 'closed').length;
+    const activeJobs = jobs.filter(j => ['queued', 'running'].includes(j.job_status)).length;
+
+    const recentCases = [...cases]
+        .sort((a, b) => +new Date(b.case_created_at) - +new Date(a.case_created_at))
+        .slice(0, 5);
+
+    const recentJobs = [...jobs]
+        .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
+        .slice(0, 6);
+
+    const recentReports = [...reports]
+        .sort((a, b) => +new Date(b.report_generated_at) - +new Date(a.report_generated_at))
+        .slice(0, 6);
 
     if (loading) {
         return (
-            <div
-                className="d-flex align-items-center justify-content-center bg-body"
-                style={{ minHeight: '100vh' }}
-            >
-                <div className="card w-700px">
-
-                    <div className="card-body py-5">
-
-                        {/* ================= HEADER ================= */}
-                        <div className="text-center mb-4">
-                            <div
-                                className="d-inline-flex align-items-center justify-content-center rounded-circle border border-theme border-opacity-50 mb-3"
-                                style={{ width: 96, height: 96 }}
-                            >
-                                <i className="bi bi-shield-lock fs-1 text-theme"></i>
-                            </div>
-
-                            <h5 className="fw-semibold mb-1">
-                                DFIR-AI Forensic Engine
-                            </h5>
-
-                            <div className="small text-body text-opacity-50">
-                                Secure initialization sequence
-                            </div>
+            <div className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh' }}>
+                <div className="card w-600px">
+                    <div className="card-body text-center">
+                        <i className="bi bi-shield-lock fs-1 text-theme mb-3"></i>
+                        <h5>Initializing DFIR Workspace</h5>
+                        <p className="small text-body text-opacity-50">
+                            Loading organization, cases, jobs, and evidentiary context…
+                        </p>
+                        <div className="progress h-5px mt-3">
+                            <div className="progress-bar bg-theme progress-bar-striped progress-bar-animated w-100"></div>
                         </div>
-
-                        {/* ================= CONSOLE ================= */}
-                        <div
-                            className="bg-black bg-opacity-75 rounded p-4 small font-monospace text-theme"
-                            style={{ maxHeight: 260, overflow: 'hidden' }}
-                        >
-                            <BootLine ts="00:00:01" msg="Boot sequence initiated" />
-                            <BootLine ts="00:00:02" msg="Validating analyst session" />
-                            <BootLine ts="00:00:03" msg="Loading organization context" />
-                            <BootLine ts="00:00:04" msg="Mounting evidence vault (read-only)" />
-                            <BootLine ts="00:00:05" msg="Indexing forensic artifacts" />
-                            <BootLine ts="00:00:06" msg="Restoring case timelines" />
-                            <BootLine ts="00:00:07" msg="Synchronizing analysis jobs" />
-                            <BootLine ts="00:00:08" msg="Verifying chain-of-custody integrity" />
-                            <BootLine ts="00:00:09" msg="Initializing AI correlation engine" />
-                            <BootLine ts="00:00:10" msg="Finalizing workspace state" />
-                        </div>
-
-                        {/* ================= STATUS ================= */}
-                        <div className="mt-4">
-                            <div className="d-flex justify-content-between small mb-1">
-                                <span className="text-body text-opacity-50">
-                                    System state
-                                </span>
-                                <span className="text-theme">
-                                    OPERATIONAL
-                                </span>
-                            </div>
-
-                            <div className="progress h-5px">
-                                <div
-                                    className="progress-bar bg-theme progress-bar-striped progress-bar-animated"
-                                    style={{ width: '100%' }}
-                                ></div>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    {/* ================= HUD ARROWS ================= */}
-                    <div className="card-arrow">
-                        <div className="card-arrow-top-left"></div>
-                        <div className="card-arrow-top-right"></div>
-                        <div className="card-arrow-bottom-left"></div>
-                        <div className="card-arrow-bottom-right"></div>
                     </div>
                 </div>
             </div>
         );
     }
-
-    const runningJobs = jobs.filter(j => j.job_status === 'running').length;
-    const completedJobs = jobs.filter(j => j.job_status === 'completed').length;
-
-    const storagePct =
-        storage ? Math.round((storage.used_gb / storage.total_gb) * 100) : 0;
 
     return (
         <DashboardLayout>
@@ -186,67 +147,92 @@ export default function DashboardPage() {
                 <div className="col">
                     <h1 className="mb-1">{orgName}</h1>
                     <p className="text-body text-opacity-75">
-                        Forensic operations & analytical state overview
+                        Organization forensic operations overview
                     </p>
                 </div>
             </div>
 
             {/* ================= METRICS ================= */}
             <div className="row g-3 mb-4">
-                <Metric title="Cases" value={cases.length} icon="bi-folder2-open" />
-                <Metric title="Active Jobs" value={runningJobs} icon="bi-cpu" />
-                <Metric title="Completed Jobs" value={completedJobs} icon="bi-check2-circle" />
+
                 <Metric
-                    title="Storage Used"
-                    value={`${storage?.used_gb ?? 0} GB`}
-                    icon="bi-database"
+                    title="Total Cases"
+                    value={cases.length}
+                    icon="bi-folder2-open"
+                    href="/cases"
                 />
+
+                <Metric
+                    title="Open Cases"
+                    value={openCases}
+                    icon="bi-folder"
+                    href="/cases"
+                />
+
+                <Metric
+                    title="Active Jobs"
+                    value={activeJobs}
+                    icon="bi-cpu"
+                    href="/jobs"
+                />
+
+                <Metric
+                    title="Reports Generated"
+                    value={reports.length}
+                    icon="bi-file-earmark-text"
+                    href="/reports"
+                />
+
             </div>
 
-            {/* ================= TIMELINE + STORAGE ================= */}
+            {/* ================= CASES & JOBS ================= */}
             <div className="row g-3 mb-4">
 
-                {/* TIMELINE HEATMAP */}
-                <div className="col-lg-8">
+                {/* RECENT CASES */}
+                <div className="col-lg-6">
                     <div className="card h-100">
                         <div className="card-body">
-                            <h5>Investigation Timeline Activity</h5>
-                            <p className="small text-body text-opacity-75">
-                                Event density across cases (ingest, analysis, reporting)
-                            </p>
+                            <h5>Recent Cases</h5>
 
-                            <div className="mt-3">
-                                <div
-                                    id="timeline-heatmap"
-                                    className="ratio ratio-21x9 bg-body bg-opacity-25 rounded"
-                                ></div>
-                            </div>
+                            <ul className="list-unstyled small mt-3 mb-0">
+                                {recentCases.map(c => (
+                                    <li key={c.case_id} className="mb-2">
+                                        <Link href={`/cases/${c.case_id}`} className="fw-semibold text-decoration-none text-theme">
+                                            {c.case_name}
+                                        </Link>
+                                        <div className="text-body text-opacity-50">
+                                            Status: {c.case_status} ·{' '}
+                                            {uploadsByCase[c.case_id]?.length || 0} uploads
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                         <HudArrows />
                     </div>
                 </div>
 
-                {/* STORAGE */}
-                <div className="col-lg-4">
+                {/* JOB QUEUE */}
+                <div className="col-lg-6">
                     <div className="card h-100">
                         <div className="card-body">
-                            <h5>Evidence Storage</h5>
+                            <h5>Job Activity</h5>
 
-                            <div className="mb-2">
-                                <strong>{storage?.used_gb ?? 0} GB</strong> of{' '}
-                                {storage?.total_gb ?? 0} GB used
-                            </div>
-
-                            <div className="progress h-5px">
-                                <div
-                                    className="progress-bar bg-theme"
-                                    style={{ width: `${storagePct}%` }}
-                                ></div>
-                            </div>
-
-                            <p className="small mt-2 text-body text-opacity-75">
-                                Disk images, memory captures, logs, extracted artifacts
-                            </p>
+                            <ul className="list-unstyled small mt-3 mb-0">
+                                {recentJobs.map(j => (
+                                    <li key={j.job_id} className="mb-2">
+                                        <Link
+                                            href={`/cases/${j.case_id}`}
+                                            className={`fw-semibold text-decoration-none ${jobColor(j.job_status)}`}
+                                        >
+                                            {j.job_status.toUpperCase()}
+                                        </Link>
+                                        <div className="text-body text-opacity-50">
+                                            Case: {caseMap[j.case_id]?.case_name || j.case_id}
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                         <HudArrows />
                     </div>
@@ -254,26 +240,31 @@ export default function DashboardPage() {
 
             </div>
 
-            {/* ================= ACTIVITY STREAM ================= */}
+            {/* ================= REPORTS ================= */}
             <div className="row">
                 <div className="col-lg-12">
                     <div className="card">
                         <div className="card-body">
-                            <h5>Case & System Activity</h5>
+                            <h5>Latest Reports</h5>
 
-                            <ul className="list-unstyled mt-3 mb-0">
-                                {activity.length === 0 && (
-                                    <li className="text-body text-opacity-50 small">
-                                        No recent activity
+                            <ul className="list-unstyled small mt-3 mb-0">
+                                {recentReports.length === 0 && (
+                                    <li className="text-body text-opacity-50">
+                                        No reports generated yet
                                     </li>
                                 )}
 
-                                {activity.slice(0, 10).map(a => (
-                                    <li key={a.id} className="mb-2 small">
-                                        <i className="bi bi-circle-fill text-theme fs-6px me-2"></i>
-                                        {a.message}
+                                {recentReports.map(r => (
+                                    <li key={r.report_id} className="mb-2">
+                                        <Link
+                                            href={`/cases/${r.case_id}`}
+                                            className="fw-semibold text-theme text-decoration-none"
+                                        >
+                                            {r.report_type}
+                                        </Link>
                                         <div className="text-body text-opacity-50">
-                                            {new Date(a.timestamp).toLocaleString()}
+                                            Case: {caseMap[r.case_id]?.case_name} ·{' '}
+                                            {new Date(r.report_generated_at).toLocaleString()}
                                         </div>
                                     </li>
                                 ))}
@@ -288,29 +279,50 @@ export default function DashboardPage() {
     );
 }
 
+/* ================= HELPERS ================= */
+
+function jobColor(status: Job['job_status']) {
+    switch (status) {
+        case 'completed':
+            return 'text-success';
+        case 'running':
+            return 'text-warning';
+        case 'queued':
+            return 'text-theme';
+        case 'failed':
+            return 'text-danger';
+        default:
+            return 'text-body';
+    }
+}
+
 /* ================= COMPONENTS ================= */
 
 function Metric({
     title,
     value,
     icon,
+    href,
 }: {
     title: string;
     value: number | string;
     icon: string;
+    href: string;
 }) {
     return (
         <div className="col-lg-3 col-md-6">
-            <div className="card">
-                <div className="card-body d-flex align-items-center">
-                    <i className={`bi ${icon} fs-2 me-3 text-theme`}></i>
-                    <div>
-                        <div className="small text-body text-opacity-50">{title}</div>
-                        <div className="fs-4 fw-bold">{value}</div>
+            <Link href={href} className="text-decoration-none">
+                <div className="card h-100 hover-shadow">
+                    <div className="card-body d-flex align-items-center">
+                        <i className={`bi ${icon} fs-2 me-3 text-theme`}></i>
+                        <div>
+                            <div className="small text-body text-opacity-50">{title}</div>
+                            <div className="fs-4 fw-bold text-body">{value}</div>
+                        </div>
                     </div>
+                    <HudArrows />
                 </div>
-                <HudArrows />
-            </div>
+            </Link>
         </div>
     );
 }
