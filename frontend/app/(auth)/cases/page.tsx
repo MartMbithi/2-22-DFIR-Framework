@@ -2,9 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import AuthNav from '@/components/AuthNav';
 import AuthGuard from '@/components/AuthGuard';
+import AppSidebar from '@/components/AppSidebar';
+import AppTopBar from '@/components/AppTopBar';
 import { apiFetch } from '@/lib/api';
+
+/* ================= TYPES ================= */
 
 type Case = {
     case_id: string;
@@ -123,174 +126,216 @@ export default function CasesPage() {
 
     return (
         <AuthGuard>
-            <AuthNav />
+            <div id="app" className="app app-sidebar-fixed">
 
-            <main className="container py-8 space-y-6">
+                <AppSidebar />
+                <AppTopBar />
 
-                {/* TOP BAR */}
-                <section className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                        <h1 className="text-xl font-extrabold text-textPrimary">
-                            Cases
-                        </h1>
-                        <p className="text-xs text-textMuted">
-                            {filtered.length} of {cases.length} cases
-                        </p>
-                    </div>
+                <div id="content" className="app-content">
+                    <div className="container-fluid">
 
-                    <div className="flex items-center gap-3">
-                        <input
-                            placeholder="Search cases…"
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            className="h-9 w-56 border rounded px-3 text-sm bg-background"
-                        />
-                        <button
-                            onClick={openCreate}
-                            className="h-9 px-4 bg-primary text-textInverse rounded text-sm font-medium"
-                        >
-                            + New Case
-                        </button>
-                    </div>
-                </section>
+                        {/* ===== HEADER ===== */}
+                        <div className="row mb-3">
+                            <div className="col">
+                                <h1 className="mb-1">Cases</h1>
+                                <p className="text-body text-opacity-75 small">
+                                    {filtered.length} of {cases.length} cases
+                                </p>
+                            </div>
 
-                {/* TABLE */}
-                <section className="border rounded-lg bg-card overflow-hidden">
-                    <table className="w-full text-sm">
-                        <thead className="bg-background border-b">
-                            <tr className="text-left text-textMuted">
-                                <th className="px-4 py-3">Case</th>
-                                <th className="px-4 py-3">Status</th>
-                                <th className="px-4 py-3">Created</th>
-                                <th className="px-4 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            {loading && (
-                                <tr>
-                                    <td colSpan={4} className="px-4 py-6 text-center">
-                                        Loading…
-                                    </td>
-                                </tr>
-                            )}
-
-                            {!loading && pagedCases.length === 0 && (
-                                <tr>
-                                    <td colSpan={4} className="px-4 py-6 text-center">
-                                        No cases found.
-                                    </td>
-                                </tr>
-                            )}
-
-                            {pagedCases.map(c => (
-                                <tr key={c.case_id} className="border-t hover:bg-background">
-                                    <td className="px-4 py-3">
-                                        <div className="font-medium">{c.case_name}</div>
-                                        <div className="text-xs text-textMuted truncate max-w-md">
-                                            {c.case_description || '—'}
-                                        </div>
-                                    </td>
-
-                                    <td className="px-4 py-3">
-                                        <StatusPill status={c.case_status} />
-                                    </td>
-
-                                    <td className="px-4 py-3">
-                                        {new Date(c.case_created_at).toLocaleString()}
-                                    </td>
-
-                                    <td className="px-4 py-3 text-right space-x-3">
-                                        <Link
-                                            href={`/cases/${c.case_id}`}
-                                            className="text-primary hover:underline"
-                                        >
-                                            View
-                                        </Link>
-                                        <button
-                                            onClick={() => openEdit(c)}
-                                            className="text-textMuted hover:text-textPrimary"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => deleteCase(c.case_id)}
-                                            className="text-red-600 hover:underline"
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </section>
-
-                {/* PAGINATION */}
-                {totalPages > 1 && (
-                    <section className="flex justify-end gap-2 text-sm">
-                        <button
-                            disabled={page === 1}
-                            onClick={() => setPage(p => p - 1)}
-                            className="px-3 py-1 border rounded disabled:opacity-40"
-                        >
-                            Prev
-                        </button>
-                        <span className="text-textMuted">
-                            Page {page} of {totalPages}
-                        </span>
-                        <button
-                            disabled={page === totalPages}
-                            onClick={() => setPage(p => p + 1)}
-                            className="px-3 py-1 border rounded disabled:opacity-40"
-                        >
-                            Next
-                        </button>
-                    </section>
-                )}
-            </main>
-
-            {/* MODAL */}
-            {open && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-card rounded-lg p-6 w-full max-w-lg">
-                        <h2 className="font-semibold mb-4">
-                            {editing ? 'Edit Case' : 'Create Case'}
-                        </h2>
-
-                        <form onSubmit={saveCase} className="space-y-4">
-                            <input
-                                value={name}
-                                onChange={e => setName(e.target.value)}
-                                required
-                                placeholder="Case name"
-                                className="w-full border rounded px-3 py-2 bg-background"
-                            />
-
-                            <textarea
-                                value={description}
-                                onChange={e => setDescription(e.target.value)}
-                                placeholder="Description (optional)"
-                                className="w-full border rounded px-3 py-2 bg-background"
-                                rows={3}
-                            />
-
-                            <div className="flex justify-end gap-3">
+                            <div className="col-auto d-flex align-items-center gap-3">
+                                <input
+                                    className="form-control form-control-sm"
+                                    placeholder="Search cases…"
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                />
                                 <button
-                                    type="button"
-                                    onClick={() => setOpen(false)}
-                                    className="px-4 py-2 border rounded"
+                                    className="btn btn-outline-theme btn-sm"
+                                    onClick={openCreate}
                                 >
-                                    Cancel
-                                </button>
-                                <button
-                                    disabled={saving}
-                                    className="px-4 py-2 bg-primary text-textInverse rounded"
-                                >
-                                    {saving ? 'Saving…' : 'Save'}
+                                    Add
                                 </button>
                             </div>
-                        </form>
+                        </div>
+
+                        {/* ===== TABLE ===== */}
+                        <div className="card">
+                            <div className="card-body p-0">
+                                <div className="table-responsive">
+                                    <table className="table table-hover table-borderless mb-0 small align-middle">
+                                        <thead className="text-body text-opacity-50">
+                                            <tr>
+                                                <th>Case</th>
+                                                <th>Status</th>
+                                                <th>Created</th>
+                                                <th className="text-end">Actions</th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+                                            {loading && (
+                                                <tr>
+                                                    <td colSpan={4} className="text-center py-4">
+                                                        Loading cases…
+                                                    </td>
+                                                </tr>
+                                            )}
+
+                                            {!loading && pagedCases.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={4} className="text-center py-4">
+                                                        No cases found
+                                                    </td>
+                                                </tr>
+                                            )}
+
+                                            {pagedCases.map(c => (
+                                                <tr key={c.case_id}>
+                                                    <td>
+                                                        <div className="fw-semibold">
+                                                            {c.case_name}
+                                                        </div>
+                                                        <div className="text-body text-opacity-50 text-truncate" style={{ maxWidth: 420 }}>
+                                                            {c.case_description || '—'}
+                                                        </div>
+                                                    </td>
+
+                                                    <td>
+                                                        <StatusBadge status={c.case_status} />
+                                                    </td>
+
+                                                    <td>
+                                                        {new Date(c.case_created_at).toLocaleString()}
+                                                    </td>
+
+                                                    <td className="text-end">
+                                                        <Link
+                                                            href={`/cases/${c.case_id}`}
+                                                            className="me-3 text-theme text-decoration-none"
+                                                        >
+                                                            View
+                                                        </Link>
+                                                        <button
+                                                            className="btn btn-sm btn-outline-secondary me-2"
+                                                            onClick={() => openEdit(c)}
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-sm btn-outline-danger"
+                                                            onClick={() => deleteCase(c.case_id)}
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div className="card-arrow">
+                                <div className="card-arrow-top-left"></div>
+                                <div className="card-arrow-top-right"></div>
+                                <div className="card-arrow-bottom-left"></div>
+                                <div className="card-arrow-bottom-right"></div>
+                            </div>
+                        </div>
+
+                        {/* ===== PAGINATION ===== */}
+                        {totalPages > 1 && (
+                            <div className="d-flex justify-content-end align-items-center gap-2 mt-3 small">
+                                <button
+                                    className="btn btn-sm btn-outline-secondary"
+                                    disabled={page === 1}
+                                    onClick={() => setPage(p => p - 1)}
+                                >
+                                    Prev
+                                </button>
+                                <span className="text-body text-opacity-50">
+                                    Page {page} of {totalPages}
+                                </span>
+                                <button
+                                    className="btn btn-sm btn-outline-secondary"
+                                    disabled={page === totalPages}
+                                    onClick={() => setPage(p => p + 1)}
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
+
+                    </div>
+                </div>
+            </div>
+
+            {/* ===== MODAL ===== */}
+            {open && (
+                <div className="modal fade show d-block" tabIndex={-1}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content">
+
+                            <form onSubmit={saveCase}>
+                                <div className="modal-header">
+                                    <h5 className="modal-title">
+                                        {editing ? 'Edit Case' : 'Create Case'}
+                                    </h5>
+                                    <button
+                                        type="button"
+                                        className="btn-close"
+                                        onClick={() => setOpen(false)}
+                                    ></button>
+                                </div>
+
+                                <div className="modal-body">
+                                    <div className="mb-3">
+                                        <label className="form-label">Case name</label>
+                                        <input
+                                            className="form-control"
+                                            value={name}
+                                            onChange={e => setName(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="form-label">Description</label>
+                                        <textarea
+                                            className="form-control"
+                                            rows={3}
+                                            value={description}
+                                            onChange={e => setDescription(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="modal-footer">
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-secondary"
+                                        onClick={() => setOpen(false)}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        className="btn btn-outline-theme"
+                                        disabled={saving}
+                                    >
+                                        {saving ? 'Saving…' : 'Save'}
+                                    </button>
+                                </div>
+                            </form>
+
+                            <div className="card-arrow">
+                                <div className="card-arrow-top-left"></div>
+                                <div className="card-arrow-top-right"></div>
+                                <div className="card-arrow-bottom-left"></div>
+                                <div className="card-arrow-bottom-right"></div>
+                            </div>
+
+                        </div>
                     </div>
                 </div>
             )}
@@ -300,15 +345,15 @@ export default function CasesPage() {
 
 /* ================= STATUS ================= */
 
-function StatusPill({ status }: { status: string }) {
+function StatusBadge({ status }: { status: string }) {
     const map: Record<string, string> = {
-        open: 'bg-blue-100 text-blue-700',
-        running: 'bg-amber-100 text-amber-700',
-        closed: 'bg-green-100 text-green-700'
+        open: 'bg-primary',
+        running: 'bg-warning',
+        closed: 'bg-success'
     };
 
     return (
-        <span className={`px-2 py-1 rounded text-xs font-medium ${map[status] || 'bg-gray-100 text-gray-700'}`}>
+        <span className={`badge ${map[status] || 'bg-secondary'}`}>
             {status}
         </span>
     );

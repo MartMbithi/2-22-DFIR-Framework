@@ -28,12 +28,12 @@ export default function AppSidebar() {
                         {/* ================= DFIR CORE ================= */}
                         <div className="menu-header">DFIR Operations</div>
 
-                        <div className={`menu-item ${isActive('/app') ? 'active' : ''}`}>
-                            <Link href="/app" className="menu-link">
+                        <div className={`menu-item ${isActive('/dashboard') ? 'active' : ''}`}>
+                            <Link href="/dashboard" className="menu-link">
                                 <span className="menu-icon">
                                     <i className="bi bi-cpu"></i>
                                 </span>
-                                <span className="menu-text">Operations Overview</span>
+                                <span className="menu-text">DFIR Ops</span>
                             </Link>
                         </div>
 
