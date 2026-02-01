@@ -27,9 +27,13 @@ export default function CasesPage() {
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
 
-    // modal state
+    // create/edit modal
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Case | null>(null);
+
+    // delete modal
+    const [deleteTarget, setDeleteTarget] = useState<Case | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     // form
     const [name, setName] = useState('');
@@ -116,10 +120,19 @@ export default function CasesPage() {
         }
     }
 
-    async function deleteCase(id: string) {
-        if (!confirm('Delete this case? This action cannot be undone.')) return;
-        await apiFetch(`/cases/${id}`, { method: 'DELETE' });
-        loadCases();
+    async function confirmDelete() {
+        if (!deleteTarget) return;
+
+        setDeleting(true);
+        try {
+            await apiFetch(`/cases/${deleteTarget.case_id}`, {
+                method: 'DELETE'
+            });
+            setDeleteTarget(null);
+            loadCases();
+        } finally {
+            setDeleting(false);
+        }
     }
 
     /* ================= UI ================= */
@@ -196,7 +209,10 @@ export default function CasesPage() {
                                                         <div className="fw-semibold">
                                                             {c.case_name}
                                                         </div>
-                                                        <div className="text-body text-opacity-50 text-truncate" style={{ maxWidth: 420 }}>
+                                                        <div
+                                                            className="text-body text-opacity-50 text-truncate"
+                                                            style={{ maxWidth: 420 }}
+                                                        >
                                                             {c.case_description || '—'}
                                                         </div>
                                                     </td>
@@ -212,19 +228,21 @@ export default function CasesPage() {
                                                     <td className="text-end">
                                                         <Link
                                                             href={`/cases/${c.case_id}`}
-                                                            className="me-3 text-theme text-decoration-none"
+                                                            className="btn btn-sm btn-outline-theme me-2"
                                                         >
                                                             View
                                                         </Link>
+
                                                         <button
                                                             className="btn btn-sm btn-outline-secondary me-2"
                                                             onClick={() => openEdit(c)}
                                                         >
                                                             Edit
                                                         </button>
+
                                                         <button
                                                             className="btn btn-sm btn-outline-danger"
-                                                            onClick={() => deleteCase(c.case_id)}
+                                                            onClick={() => setDeleteTarget(c)}
                                                         >
                                                             Delete
                                                         </button>
@@ -271,7 +289,7 @@ export default function CasesPage() {
                 </div>
             </div>
 
-            {/* ===== MODAL ===== */}
+            {/* ===== CREATE / EDIT MODAL ===== */}
             {open && (
                 <div className="modal fade show d-block" tabIndex={-1}>
                     <div className="modal-dialog modal-dialog-centered">
@@ -328,13 +346,59 @@ export default function CasesPage() {
                                 </div>
                             </form>
 
-                            <div className="card-arrow">
-                                <div className="card-arrow-top-left"></div>
-                                <div className="card-arrow-top-right"></div>
-                                <div className="card-arrow-bottom-left"></div>
-                                <div className="card-arrow-bottom-right"></div>
+                            <HudArrows />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== DELETE CONFIRMATION MODAL ===== */}
+            {deleteTarget && (
+                <div className="modal fade show d-block" tabIndex={-1}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content">
+
+                            <div className="modal-header">
+                                <h5 className="modal-title text-danger">
+                                    Confirm Case Deletion
+                                </h5>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={() => setDeleteTarget(null)}
+                                ></button>
                             </div>
 
+                            <div className="modal-body">
+                                <p className="mb-2">
+                                    You are about to permanently delete the case:
+                                </p>
+                                <p className="fw-semibold">
+                                    {deleteTarget.case_name}
+                                </p>
+                                <p className="text-body text-opacity-75 small mb-0">
+                                    This action will remove all associated metadata, analysis
+                                    references, and audit history. This operation cannot be undone.
+                                </p>
+                            </div>
+
+                            <div className="modal-footer">
+                                <button
+                                    className="btn btn-outline-secondary"
+                                    onClick={() => setDeleteTarget(null)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className="btn btn-outline-danger"
+                                    disabled={deleting}
+                                    onClick={confirmDelete}
+                                >
+                                    {deleting ? 'Deleting…' : 'Delete Case'}
+                                </button>
+                            </div>
+
+                            <HudArrows />
                         </div>
                     </div>
                 </div>
@@ -356,5 +420,16 @@ function StatusBadge({ status }: { status: string }) {
         <span className={`badge ${map[status] || 'bg-secondary'}`}>
             {status}
         </span>
+    );
+}
+
+function HudArrows() {
+    return (
+        <div className="card-arrow">
+            <div className="card-arrow-top-left"></div>
+            <div className="card-arrow-top-right"></div>
+            <div className="card-arrow-bottom-left"></div>
+            <div className="card-arrow-bottom-right"></div>
+        </div>
     );
 }
