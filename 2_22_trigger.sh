@@ -79,17 +79,54 @@ export $(grep -v '^#' .env | xargs)
 echo ""
 echo "[4] Preparing Python environment..."
 
+start_time=$(date +%s)
+
+# spinner function
+spinner() {
+  local pid=$!
+  local delay=0.1
+  local spinstr='|/-\'
+  while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+    local temp=${spinstr#?}
+    printf " [%c]  " "$spinstr"
+    spinstr=$temp${spinstr%"$temp"}
+    sleep $delay
+    printf "\b\b\b\b\b\b"
+  done
+  printf "    \b\b\b\b"
+}
+
+# create venv
 if [ ! -d "venv" ]; then
-  python3 -m venv venv
+  echo "→ Creating virtual environment..."
+  python3 -m venv venv &
+  spinner
+  echo "✔ Virtual environment created"
+else
+  echo "✔ Virtual environment already exists"
 fi
 
+# activate
+echo "→ Activating environment..."
 source venv/bin/activate
+echo "✔ Environment activated"
 
-pip install --upgrade pip > /dev/null
+# upgrade pip
+echo "→ Upgrading pip..."
+pip install --upgrade pip > /dev/null 2>&1 &
+spinner
+echo "✔ Pip upgraded"
 
-pip install -r requirements.txt > /dev/null
+# install requirements
+echo "→ Installing backend dependencies..."
+pip install -r requirements.txt > /dev/null 2>&1 &
+spinner
+echo "✔ Dependencies installed"
 
-echo "✔ Backend dependencies verified"
+end_time=$(date +%s)
+duration=$((end_time - start_time))
+
+echo "✔ Python environment ready (${duration}s)"
 
 #############################################
 # FRONTEND DEPENDENCIES
@@ -120,12 +157,22 @@ echo "[6] Verifying database connection..."
 
 python3 << END
 import os
-import sqlalchemy
+from sqlalchemy import create_engine
 
-url = os.getenv("DATABASE_URL")
+host = os.getenv("DB_HOST")
+user = os.getenv("DB_USER")
+password = os.getenv("DB_PASSWORD", "")
+db = os.getenv("DB_NAME")
+port = os.getenv("DB_PORT")
+
+if not host or not user or not db:
+    print("❌ Missing DB configuration in .env")
+    exit(1)
+
+db_url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{db}"
 
 try:
-    engine = sqlalchemy.create_engine(url)
+    engine = create_engine(db_url)
     conn = engine.connect()
     print("✔ Database connection OK")
 except Exception as e:
@@ -150,79 +197,19 @@ fi
 #############################################
 # JWT SECRET CHECK
 #############################################
-
 echo ""
 echo "[8] Checking JWT configuration..."
 
-if [ -z "$JWT_SECRET" ]; then
-  echo "❌ JWT_SECRET missing in .env"
+JWT_SECRET_VALUE=${JWT_SECRET:-$JWT_SECRET_KEY}
+
+if [ -z "$JWT_SECRET_VALUE" ]; then
+  echo "❌ JWT secret missing in .env"
+  echo "Add either JWT_SECRET or JWT_SECRET_KEY"
   exit 1
 fi
 
 echo "✔ JWT secret configured"
 
-#############################################
-# CREATE DEFAULT ADMIN
-#############################################
-
-echo ""
-echo "[9] Checking default admin user..."
-
-python3 << END
-import os
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
-from backend.models.users import User
-from backend.security import hash_password
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-engine = create_engine(DATABASE_URL)
-Session = sessionmaker(bind=engine)
-db = Session()
-
-admin = db.query(User).filter(User.user_email=="admin@dfir.local").first()
-
-if not admin:
-    user = User(
-        user_email="admin@dfir.local",
-        user_password_hash=hash_password("admin123")
-    )
-    db.add(user)
-    db.commit()
-    print("✔ Default admin created (admin@dfir.local / admin123)")
-else:
-    print("✔ Admin user exists")
-END
-
-#############################################
-# OPENAI CHECK
-#############################################
-
-echo ""
-echo "[10] Checking OpenAI connectivity..."
-
-python3 << END
-import os
-import requests
-
-key = os.getenv("OPENAI_API_KEY")
-
-if not key:
-    print("⚠ OpenAI key not configured")
-else:
-    try:
-        r = requests.get(
-            "https://api.openai.com/v1/models",
-            headers={"Authorization": f"Bearer {key}"}
-        )
-        if r.status_code == 200:
-            print("✔ OpenAI API reachable")
-        else:
-            print("⚠ OpenAI API responded but returned", r.status_code)
-    except Exception as e:
-        print("❌ OpenAI connectivity failed:", e)
-END
 
 #############################################
 # DFIR SELF TEST
