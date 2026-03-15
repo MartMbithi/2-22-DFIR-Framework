@@ -1,108 +1,147 @@
 
-# DFIR-AI - AI-Assisted Digital Forensics Automation Platform**
-
+# 2:22 DFIR Framework – Autonomous Digital Forensic and Incident Response Platform
 
 ## Overview
 
-**DFIR-AI** is a research-grade, production-ready digital forensics platform that automates forensic evidence ingestion, normalization, triage, intelligence enrichment, and forensic report generation.
+The **2:22 DFIR Framework** is an AI-assisted digital forensics and incident response platform designed to automate
+log-based cyber incident investigations within modern information systems. The framework was developed as part of
+research focused on strengthening cyber incident investigation capabilities in government information environments,
+with particular relevance to county government systems.
 
-Originally designed as a CLI-based DFIR engine, DFIR-AI has been refactored into a **secure, multi-tenant SaaS backend** while preserving the integrity and reproducibility of the core forensic pipeline.
+The designation **“2:22”** represents the conceptual moment during which the investigative architecture of the framework
+was first articulated. The framework embodies a hybrid analytical model that combines deterministic forensic analysis
+with semantic intelligence techniques to improve the efficiency, scalability, and defensibility of cyber investigations.
 
-The system emphasizes:
+Originally developed as a command-line forensic pipeline, the system has been evolved into a **secure, multi-tenant
+SaaS backend architecture** while preserving the integrity of the underlying digital forensic engine.
 
-* Forensic defensibility
-* Deterministic + semantic hybrid analysis
-* Organizational isolation
-* Scalable job execution
-* Downloadable forensic intelligence reports
+The framework emphasizes:
 
----
-
-## Key Capabilities
-
-### Core DFIR Engine
-
-* Automated ingestion of raw forensic artifacts (logs, text, JSON)
-* Multi-channel detection (web, auth, network, system, process, file)
-* Indicator normalization and enrichment
-* Rule-based + semantic hybrid triage
-* Persistent triage audit trail
-* LLM-assisted forensic narrative generation (optional)
-
-### SaaS Backend
-
-* Multi-tenant organization model
-* Secure authentication & authorization (JWT)
-* Case management
-* File upload and ingestion wiring
-* Asynchronous DFIR job execution
-* Job progress, stages, ETA tracking
-* Persistent report storage
-* Secure report download endpoints
+- Forensic defensibility and evidentiary integrity
+- Hybrid deterministic and semantic forensic analysis
+- Automated artifact ingestion and triage
+- Scalable investigation workflows
+- Multi-tenant security and organizational isolation
+- Reproducible forensic reporting
 
 ---
 
-## System Architecture (High Level)
+## 2:22 DFIR Framework Principles
 
-```
-Frontend (TBD)
-   |
-   v
-FastAPI Backend (SaaS Layer)
-   ├── Auth & Organizations
-   ├── Cases
-   ├── Uploads
-   ├── Jobs (async execution)
-   ├── Reports (download)
-   |
-   v
-DFIR Core Engine (Preserved)
-   ├── Ingestion
-   ├── Normalization
-   ├── Triage
-   ├── Semantic Reasoning
-   ├── Report Generation
-```
+The design of the framework is guided by five core forensic principles:
 
-> The **DFIR core engine is intentionally isolated** from the SaaS layer to preserve forensic reproducibility and research defensibility.
+1. **Evidence Integrity**
+   - All ingested artifacts remain unaltered.
+   - Evidence handling follows digital forensic best practices.
+
+2. **Deterministic Investigative Logic**
+   - Rule-based forensic detection ensures reproducibility of results.
+
+3. **Semantic Intelligence Support**
+   - Machine learning and language models assist in contextual reasoning,
+     without modifying the underlying evidence.
+
+4. **Operational Scalability**
+   - The framework supports asynchronous job execution and scalable processing
+     of large forensic datasets.
+
+5. **Organizational Isolation**
+   - Multi-tenant architecture ensures strict separation of forensic data between organizations.
+
+---
+
+## Core Capabilities
+
+### Automated Digital Forensic Pipeline
+
+The 2:22 DFIR Framework implements a structured forensic investigation pipeline that performs:
+
+- Automated ingestion of raw forensic artifacts
+- Multi-channel cyber event detection
+- Indicator normalization and enrichment
+- Hybrid triage analysis (rule-based + semantic)
+- Artifact correlation and intelligence generation
+- Structured forensic report generation
+
+### SaaS Investigation Platform
+
+The SaaS backend enables secure forensic operations through:
+
+- Multi-tenant organization management
+- Secure authentication and authorization (JWT)
+- Case management and forensic evidence tracking
+- Asynchronous DFIR job execution
+- Real-time job progress monitoring
+- Persistent forensic report storage
+- Secure report download endpoints
+
+---
+
+## System Architecture
+
+The architecture of the 2:22 DFIR Framework separates the **forensic core engine**
+from the **SaaS orchestration layer** to preserve the reproducibility of investigations.
+
+Frontend (Future Investigation Dashboard)
+        |
+        v
+FastAPI Backend (2:22 DFIR SaaS Layer)
+        ├── Authentication & Organizations
+        ├── Case Management
+        ├── Evidence Upload & Ingestion
+        ├── DFIR Job Execution
+        ├── Investigation Tracking
+        ├── Report Retrieval
+        |
+        v
+2:22 DFIR Core Engine
+        ├── Evidence Ingestion
+        ├── Artifact Normalization
+        ├── Threat Detection
+        ├── Forensic Triage Engine
+        ├── Semantic Investigation Layer
+        ├── Intelligence Correlation
+        └── Report Generation
+
+The isolation of the DFIR core ensures that forensic analysis remains **deterministic,
+auditable, and reproducible** regardless of the SaaS orchestration layer.
 
 ---
 
 ## Technology Stack
 
-### Backend
+### Backend Platform
 
-* Python 3.9+
-* FastAPI
-* SQLAlchemy
-* MySQL / MariaDB
-* JWT authentication
-* Background task execution
+- Python 3.9+
+- FastAPI
+- SQLAlchemy ORM
+- MySQL / MariaDB
+- JWT Authentication
+- Asynchronous background task execution
 
-### DFIR Core
+### DFIR Core Engine
 
-* Custom ingestion detectors
-* Sentence Transformers
-* OpenAI Responses API (optional)
-* Deterministic triage rules
-* Semantic scoring engine
-* PDF & TXT report generation
+- Custom artifact ingestion detectors
+- Deterministic triage rules
+- Sentence Transformers for semantic similarity
+- Optional OpenAI Responses API integration
+- Hybrid scoring engine (rule + semantic)
+- Automated PDF and TXT forensic report generation
 
 ---
 
 ## Repository Structure
 
-```
 DFIR_AI/
-├── backend/                 # SaaS backend (FastAPI)
-│   ├── api/                 # API routes
-│   ├── db/                  # DB sessions
-│   ├── execution/           # Job runners & adapters
+├── backend/                 # SaaS backend layer
+│   ├── api/                 # API endpoints
+│   ├── db/                  # database session management
+│   ├── execution/           # job runners
 │   ├── models/              # SQLAlchemy models
 │   ├── schemas/             # Pydantic schemas
-│   └── main.py              # FastAPI entrypoint
+│   └── main.py              # FastAPI application entrypoint
 │
-├── dfir_core/               # Preserved DFIR engine
+├── dfir_core/               # 2:22 DFIR investigation engine
 │   ├── ingestion/
 │   ├── triage/
 │   ├── triage_semantic/
@@ -110,41 +149,43 @@ DFIR_AI/
 │   ├── reporting/
 │   └── scripts/run_all.py
 │
-├── reports/                 # Generated reports (per case)
-├── uploads/                 # Uploaded forensic files
+├── uploads/                 # Uploaded forensic evidence
+├── reports/                 # Generated forensic reports
 ├── requirements.txt
 ├── .env
 └── README.md
-```
 
 ---
 
-## Database
+## Database Model
 
-### Core Tables (simplified)
+The platform maintains a structured database schema supporting
+forensic traceability and auditability.
 
-* `users`
-* `organizations`
-* `cases`
-* `case_uploads`
-* `forensic_artifacts`
-* `triage_results`
-* `jobs`
-* `reports`
+Core entities include:
 
-All tables:
+- users
+- organizations
+- cases
+- case_uploads
+- forensic_artifacts
+- triage_results
+- jobs
+- reports
 
-* Use **plural naming**
-* Use **singular attributes**
-* Enforce organization isolation
+Design principles:
+
+- plural table naming
+- singular attribute naming
+- strict organizational isolation
+- complete audit trace of forensic triage decisions
 
 ---
 
 ## Environment Configuration
 
-Create a `.env` file:
+Create a `.env` file in the root directory:
 
-```env
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=
@@ -153,7 +194,6 @@ DB_NAME=dfir_ai
 DATABASE_URL=mysql+pymysql://root:@localhost:3306/dfir_ai
 
 OPENAI_API_KEY=optional
-```
 
 ---
 
@@ -161,96 +201,94 @@ OPENAI_API_KEY=optional
 
 ### Install Dependencies
 
-```bash
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-```
 
-### Start FastAPI
+### Launch the API Server
 
-```bash
 uvicorn backend.main:app --reload
-```
 
-Swagger UI:
+API documentation (Swagger):
 
-```
 http://127.0.0.1:8000/docs
-```
 
 ---
 
-## API Workflow (End-to-End)
+## End‑to‑End Investigation Workflow
 
-1. **Register / Login**
-2. **Create Organization**
-3. **Create Case**
-4. **Upload Forensic Files**
-5. **Create DFIR Job**
-6. **Track Job Progress**
-7. **Download Generated Reports**
+1. Register or authenticate a user
+2. Create an organization
+3. Create a forensic case
+4. Upload forensic artifacts
+5. Launch a DFIR investigation job
+6. Monitor job progress and stages
+7. Download generated forensic intelligence reports
 
 ---
 
-## Report Downloads
+## Secure Report Downloads
 
-Secure report download endpoint:
+Endpoint:
 
-```
 GET /reports/{report_id}/download
-```
 
-Features:
+Features include:
 
-* Organization-scoped access
-* Case ownership enforcement
-* Safe filesystem handling
-* Future-ready for signed URLs (S3 / MinIO)
-
----
-
-## Forensic Integrity Principles
-
-* Evidence ingestion is deterministic
-* Semantic reasoning does not alter evidence
-* LLMs are used **only for narrative synthesis**
-* All triage scores are auditable
-* Reports are reproducible from stored artifacts
+- organization‑scoped authorization
+- case ownership verification
+- secure filesystem access
+- extensibility for cloud storage (S3 / MinIO)
 
 ---
 
-## Academic & Research Use
+## Forensic Integrity Model
 
-DFIR-AI can be used as:
+The 2:22 DFIR Framework follows strict forensic integrity principles:
 
-* A research platform
-* A preprint / white-paper artifact
-* A reproducible DFIR experimentation framework
-
-LLMs do **not** influence evidence prioritization decisions.
+- Evidence ingestion is deterministic
+- Original evidence is never modified
+- Triage scoring is fully auditable
+- Semantic reasoning does not alter evidence
+- LLMs are used only for narrative synthesis
+- Reports can be reproduced from stored artifacts
 
 ---
 
-## License & Disclosure
+## Academic and Research Applications
 
-This project is provided for:
+The framework can be used for:
 
-* Research
-* Defensive security
-* Forensic analysis
+- cybersecurity research
+- digital forensic experimentation
+- automated incident response studies
+- government cybersecurity capacity building
 
-It is **not** intended for offensive use.
+The platform also serves as the technical implementation of the **2:22 Digital
+Forensic and Incident Response Framework**, which was developed to enhance
+cyber incident investigation within public sector information systems.
 
 ---
 
 ## Project Status
 
-* ✅ Backend stable
-* ✅ Jobs & reports working
-* ✅ Downloads secured
-* 🔄 Frontend in progress
-* 🔒 Core DFIR engine preserved
+Current development status:
+
+- Backend infrastructure stable
+- DFIR job execution pipeline operational
+- Forensic reporting engine functional
+- Secure report download endpoints implemented
+- Frontend investigation dashboard under development
+- DFIR core engine preserved and version controlled
 
 ---
 
+## License
+
+This framework is provided strictly for:
+
+- cybersecurity research
+- digital forensic investigations
+- defensive security analysis
+
+The project is **not intended for offensive or malicious use**.
