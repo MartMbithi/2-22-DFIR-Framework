@@ -2,18 +2,16 @@ import Nav from '@/components/Nav';
 import Footer from '@/components/Footer';
 
 export const metadata = {
-    title: 'Documentation | 2:22 AI',
+    title: 'Documentation | 2:22 DFIR Framework',
     description:
-        'Comprehensive technical documentation for 2:22 AI covering architecture, workflows, security, AI usage, and self-hosted deployment.',
+        'Technical documentation for the 2:22 DFIR Framework covering architecture, investigation workflows, forensic integrity, and deployment.',
 };
 
 export default function Docs() {
     return (
         <>
-            {/* HUD HEADER */}
             <Nav />
 
-            {/* BEGIN CONTENT */}
             <div
                 className="py-5 bg-body bg-opacity-50"
                 data-bs-theme="dark"
@@ -24,203 +22,229 @@ export default function Docs() {
                     <div className="row justify-content-center mb-5">
                         <div className="col-xl-10 col-lg-11">
                             <h1 className="display-6 fw-bold mb-3">
-                                2:22 AI Documentation
+                                2:22 DFIR Framework Documentation
                             </h1>
 
                             <p className="fs-18px text-body text-opacity-75">
-                                This document provides a complete technical overview of 2:22 AI,
-                                an open-source, self-hosted Digital Forensics and Incident Response
-                                platform. It is intended for security analysts, forensic
-                                practitioners, engineers, auditors, and reviewers who require
-                                a clear understanding of the system’s design, operation, and
-                                trust model.
+                                This documentation provides a technical overview of the
+                                <strong> 2:22 Digital Forensic and Incident Response Framework</strong>.
+                                The framework is an open-source, self-hosted investigation
+                                platform designed to support evidence-driven cyber incident
+                                analysis within enterprise, government, and regulated environments.
                             </p>
                         </div>
                     </div>
 
-                    {/* SECTION: SYSTEM OVERVIEW */}
+                    {/* SYSTEM OVERVIEW */}
                     <DocSection
-                        title="1. System Overview"
+                        title="1. Framework Overview"
                         content={
                             <>
                                 <p>
-                                    2:22 AI is designed to support evidence-driven digital
-                                    investigations conducted in enterprise, government, and
-                                    regulated environments. The platform unifies case management,
-                                    evidence handling, timeline reconstruction, and report
-                                    generation into a single investigation environment.
+                                    The 2:22 DFIR Framework provides a unified environment
+                                    for conducting digital forensic investigations. The system
+                                    integrates artifact ingestion, forensic normalization,
+                                    hybrid triage analysis, intelligence correlation, and
+                                    structured report generation.
                                 </p>
 
                                 <p>
-                                    Unlike opaque or autonomous security platforms, 2:22 AI
-                                    explicitly preserves analyst control. All analytical outputs
-                                    are explainable, traceable to source artifacts, and subject to
-                                    investigator validation.
+                                    The framework prioritizes investigator control and
+                                    evidentiary defensibility. Analytical automation assists
+                                    investigators but never replaces human judgement.
                                 </p>
                             </>
                         }
                     />
 
-                    {/* SECTION: ARCHITECTURE */}
+                    {/* ARCHITECTURE */}
                     <DocSection
-                        title="2. Platform Architecture"
+                        title="2. System Architecture"
                         content={
                             <>
                                 <p>
-                                    2:22 AI follows a modular architecture consisting of a
-                                    FastAPI-based backend, a Next.js frontend, and supporting
-                                    services such as databases and object storage.
+                                    The framework follows a layered architecture separating
+                                    the investigation engine from the orchestration layer
+                                    responsible for user interaction and case management.
                                 </p>
 
                                 <ul>
-                                    <li>Frontend: Investigation console and analyst interface</li>
-                                    <li>Backend: Case logic, evidence processing, audit logging</li>
-                                    <li>Storage: Evidence artifacts, metadata, and reports</li>
-                                    <li>AI Layer: Optional, analyst-triggered analytical assistance</li>
+                                    <li>Frontend: Next.js investigation console</li>
+                                    <li>Backend: FastAPI SaaS orchestration layer</li>
+                                    <li>DFIR Engine: forensic ingestion, normalization, triage</li>
+                                    <li>Database: investigation artifacts and case records</li>
+                                    <li>Reporting: automated forensic intelligence reports</li>
                                 </ul>
 
                                 <p>
-                                    Components may be deployed on a single host for research or
-                                    distributed across infrastructure for operational use.
+                                    This separation ensures that forensic processing remains
+                                    deterministic and reproducible regardless of the user
+                                    interface or orchestration components.
                                 </p>
                             </>
                         }
                     />
 
-                    {/* SECTION: INVESTIGATION WORKFLOW */}
+                    {/* INVESTIGATION WORKFLOW */}
                     <DocSection
-                        title="3. Investigation Workflow"
+                        title="3. Investigation Lifecycle"
                         content={
                             <>
                                 <p>
-                                    Investigations in 2:22 AI follow a structured lifecycle
-                                    designed to preserve forensic integrity:
+                                    Investigations conducted within the framework follow a
+                                    structured lifecycle designed to preserve forensic integrity.
                                 </p>
 
                                 <ol>
-                                    <li>Case creation and scope definition</li>
-                                    <li>Evidence ingestion and cryptographic hashing</li>
-                                    <li>Timeline reconstruction and correlation</li>
-                                    <li>Analyst annotation and validation</li>
-                                    <li>Report generation and export</li>
+                                    <li>Case creation and investigation scope definition</li>
+                                    <li>Artifact ingestion and cryptographic hashing</li>
+                                    <li>Indicator normalization and enrichment</li>
+                                    <li>Hybrid triage scoring and artifact prioritization</li>
+                                    <li>Investigator review and annotation</li>
+                                    <li>Automated forensic intelligence report generation</li>
                                 </ol>
 
                                 <p>
-                                    Every analyst action is attributable and auditable, supporting
-                                    internal review, regulatory oversight, and legal scrutiny.
+                                    All investigative actions are attributable and auditable,
+                                    supporting internal review, compliance oversight, and
+                                    legal defensibility.
                                 </p>
                             </>
                         }
                     />
 
-                    {/* SECTION: EVIDENCE & CHAIN OF CUSTODY */}
+                    {/* EVIDENCE HANDLING */}
                     <DocSection
-                        title="4. Evidence Handling & Chain of Custody"
+                        title="4. Evidence Integrity & Chain of Custody"
                         content={
                             <>
                                 <p>
-                                    Evidence is cryptographically hashed at ingestion and tracked
-                                    throughout its lifecycle. 2:22 AI maintains custody metadata
-                                    including timestamps, analyst actions, and access history.
+                                    Digital artifacts are cryptographically hashed at
+                                    ingestion to preserve evidentiary integrity. Metadata
+                                    associated with artifacts includes timestamps, origin
+                                    information, analyst actions, and processing history.
                                 </p>
 
                                 <p>
-                                    Evidence records are immutable by design. Any transformation
-                                    or derived artifact is traceable back to its original source.
+                                    Derived artifacts remain traceable to their original
+                                    evidence source, ensuring transparency and auditability
+                                    throughout the investigation lifecycle.
                                 </p>
                             </>
                         }
                     />
 
-                    {/* SECTION: AI USAGE */}
+                    {/* TRIAGE ENGINE */}
                     <DocSection
-                        title="5. AI-Assisted Analysis Model"
+                        title="5. Hybrid Forensic Analysis Engine"
                         content={
                             <>
                                 <p>
-                                    2:22 AI integrates AI strictly as an analytical assistant.
-                                    Capabilities include summarization, correlation support, and
-                                    draft report generation.
+                                    The 2:22 DFIR Framework utilizes a hybrid analysis model
+                                    combining deterministic forensic rules with semantic
+                                    reasoning techniques.
                                 </p>
 
+                                <ul>
+                                    <li>Deterministic rule-based artifact detection</li>
+                                    <li>Semantic correlation using embedding similarity</li>
+                                    <li>Hybrid triage scoring model</li>
+                                    <li>Investigator-controlled prioritization</li>
+                                </ul>
+
                                 <p>
-                                    AI is never autonomous. Outputs require explicit analyst
-                                    initiation and validation. The platform does not retain data
-                                    externally and requires user-supplied OpenAI API keys.
+                                    This approach improves analytical efficiency while
+                                    preserving forensic defensibility and investigative
+                                    transparency.
                                 </p>
                             </>
                         }
                     />
 
-                    {/* SECTION: SECURITY & TRUST */}
+                    {/* AI MODEL */}
                     <DocSection
-                        title="6. Security, Compliance, and Trust Model"
+                        title="6. AI-Assisted Narrative Generation"
                         content={
                             <>
                                 <p>
-                                    2:22 AI is fully self-hosted and open-source. There is no
-                                    telemetry, vendor data collection, or hidden processing.
+                                    Optional AI-assisted capabilities are used exclusively
+                                    for generating investigative narratives and summarizing
+                                    forensic findings.
                                 </p>
 
                                 <p>
-                                    The platform supports compliance-aligned investigations under
-                                    frameworks such as ISO/IEC 27001, SOC 2, and CJIS-style security
-                                    expectations through access control, audit logging, and
-                                    evidentiary rigor.
+                                    AI systems do not influence artifact scoring or evidence
+                                    prioritization. All analytical outputs remain subject to
+                                    investigator validation before inclusion in reports.
                                 </p>
                             </>
                         }
                     />
 
-                    {/* SECTION: DEPLOYMENT */}
+                    {/* DEPLOYMENT */}
                     <DocSection
-                        title="7. Deployment & Operations"
+                        title="7. Deployment & Command Center Trigger"
                         content={
                             <>
                                 <p>
-                                    2:22 AI Community Edition is deployed by cloning the source
-                                    repository and running the backend and frontend services.
-                                    Operators are responsible for infrastructure hardening,
-                                    credential management, and backups.
+                                    The framework is deployed using the 2:22 Command Center
+                                    Trigger which prepares runtime environments, verifies
+                                    dependencies, performs system diagnostics, and launches
+                                    backend and frontend services.
                                 </p>
 
                                 <p>
-                                    The platform is designed to integrate into existing DFIR
-                                    governance models rather than replace them.
+                                    The trigger performs automated checks including:
                                 </p>
+
+                                <ul>
+                                    <li>Python and Node environment validation</li>
+                                    <li>Dependency installation</li>
+                                    <li>Database connectivity verification</li>
+                                    <li>DFIR engine self-tests</li>
+                                    <li>Ingestion pipeline diagnostics</li>
+                                    <li>Backend and frontend startup</li>
+                                </ul>
                             </>
                         }
                     />
 
-                    {/* SECTION: LIMITATIONS */}
+                    {/* SECURITY MODEL */}
                     <DocSection
-                        title="8. Scope & Limitations"
+                        title="8. Security & Trust Model"
                         content={
                             <>
                                 <p>
-                                    2:22 AI does not perform automated incident response actions,
-                                    autonomous threat blocking, or unsupervised decision-making.
+                                    The 2:22 DFIR Framework operates as a fully self-hosted
+                                    investigation environment. There is no vendor telemetry
+                                    and no external transmission of investigative data.
                                 </p>
 
                                 <p>
-                                    The platform is a decision-support system for investigators,
-                                    not a replacement for professional judgement or established
-                                    forensic procedures.
+                                    Organizations retain full control over forensic artifacts,
+                                    infrastructure, and analytical workflows.
                                 </p>
                             </>
                         }
                     />
 
-                    {/* SECTION: CONCLUSION */}
+                    {/* SUMMARY */}
                     <DocSection
                         title="9. Summary"
                         content={
                             <>
                                 <p>
-                                    2:22 AI provides a transparent, analyst-controlled platform for
-                                    conducting defensible digital forensic and incident response
-                                    investigations. Its design prioritizes integrity, auditability,
-                                    and operational trust over automation hype.
+                                    The 2:22 DFIR Framework provides a transparent,
+                                    investigator-controlled platform for conducting
+                                    defensible digital forensic investigations.
+                                </p>
+
+                                <p>
+                                    By combining deterministic forensic analysis,
+                                    semantic reasoning techniques, and automated
+                                    reporting capabilities, the framework enables
+                                    organizations to investigate cyber incidents
+                                    efficiently while maintaining evidentiary integrity.
                                 </p>
                             </>
                         }
@@ -228,15 +252,13 @@ export default function Docs() {
 
                 </div>
             </div>
-            {/* END CONTENT */}
 
-            {/* HUD FOOTER */}
             <Footer />
         </>
     );
 }
 
-/* ================== DOCUMENTATION SECTION ================== */
+/* DOCUMENTATION SECTION */
 
 function DocSection({
     title,

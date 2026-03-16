@@ -107,7 +107,7 @@ export default function AppTopBar() {
                         <span className="brand-img">
                             <span className="brand-img-text text-theme">2</span>
                         </span>
-                        <span className="brand-text">2:22 AI</span>
+                        <span className="brand-text">2:22</span>
                     </a>
                 </div>
 
@@ -193,7 +193,7 @@ export default function AppTopBar() {
 
                         <div className="modal-body">
                             <p className="text-body text-opacity-75 mb-0">
-                                You are about to terminate your authenticated 2:22 AI session.
+                                You are about to terminate your authenticated 2:22 session.
                                 Active background jobs will continue to run, but you will need
                                 to re-authenticate to view results.
                             </p>

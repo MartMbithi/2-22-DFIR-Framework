@@ -62,7 +62,8 @@
  *   And if you ever think you’ve got a claim, the most you’re getting out of us is the license fee you
  *   paid—if any. No drama, no big payouts, just pixels and code.
  *
- */import Link from 'next/link';
+ */
+import Link from 'next/link';
 
 export default function Footer() {
   return (
@@ -76,31 +77,45 @@ export default function Footer() {
 
           {/* Column 1 */}
           <div className="col-lg-4">
-            <h5 className="mb-3">2:22 AI</h5>
+            <h5 className="mb-3">2:22 DFIR Framework</h5>
             <p>
-              An open-source Digital Forensics and Incident Response platform
-              designed for self-hosted deployments, forensic integrity, and
-              analyst-driven investigations.
+              The 2:22 DFIR Framework is a self-hosted digital forensic and
+              incident response platform designed to support evidence-driven
+              cyber investigations. The framework enables analysts and
+              investigators to collect, correlate, and analyze digital
+              artifacts while preserving forensic integrity, transparency,
+              and evidentiary traceability.
             </p>
           </div>
 
           {/* Column 2 */}
           <div className="col-lg-3">
-            <h5 className="mb-3">Platform</h5>
+            <h5 className="mb-3">Framework</h5>
             <ul className="list-unstyled">
               <li className="mb-2">
-                <Link href="/docs" className="text-decoration-none text-body text-opacity-75">
+                <Link
+                  href="/docs"
+                  className="text-decoration-none text-body text-opacity-75"
+                >
                   Documentation
                 </Link>
               </li>
+
               <li className="mb-2">
-                <Link href="/platform" className="text-decoration-none text-body text-opacity-75">
+                <Link
+                  href="/platform"
+                  className="text-decoration-none text-body text-opacity-75"
+                >
                   Architecture
                 </Link>
               </li>
+
               <li className="mb-2">
-                <Link href="/use-cases" className="text-decoration-none text-body text-opacity-75">
-                  Use Cases
+                <Link
+                  href="/use-cases"
+                  className="text-decoration-none text-body text-opacity-75"
+                >
+                  Investigative Use Cases
                 </Link>
               </li>
             </ul>
@@ -108,15 +123,31 @@ export default function Footer() {
 
           {/* Column 3 */}
           <div className="col-lg-3">
-            <h5 className="mb-3">Legal</h5>
+            <h5 className="mb-3">Governance</h5>
             <ul className="list-unstyled">
               <li className="mb-2">
-                <Link href="/legal/privacy" className="text-decoration-none text-body text-opacity-75">
+                <Link
+                  href="/compliance"
+                  className="text-decoration-none text-body text-opacity-75"
+                >
+                  Compliance & Trust
+                </Link>
+              </li>
+
+              <li className="mb-2">
+                <Link
+                  href="/legal/privacy"
+                  className="text-decoration-none text-body text-opacity-75"
+                >
                   Privacy Policy
                 </Link>
               </li>
+
               <li className="mb-2">
-                <Link href="/legal/terms" className="text-decoration-none text-body text-opacity-75">
+                <Link
+                  href="/legal/terms"
+                  className="text-decoration-none text-body text-opacity-75"
+                >
                   License & Terms
                 </Link>
               </li>
@@ -127,6 +158,7 @@ export default function Footer() {
           <div className="col-lg-2">
             <h5 className="mb-3">Developed By</h5>
             <p className="mb-1">Devlan Solutions LTD</p>
+
             <a
               href="https://devlan.co.ke"
               target="_blank"
@@ -141,7 +173,7 @@ export default function Footer() {
         <hr className="opacity-4 my-4" />
 
         <div className="text-center small">
-          © 2026 2:22 2:22 AI — Open-Source DFIR Platform
+          © 2026 The 2:22 DFIR Framework — Autonomous Digital Forensic Investigation Platform
         </div>
       </div>
     </div>

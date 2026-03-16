@@ -2,9 +2,9 @@ import Nav from '@/components/Nav';
 import Footer from '@/components/Footer';
 
 export const metadata = {
-    title: 'Research | 2:22 AI',
+    title: 'Research | 2:22 DFIR Framework',
     description:
-        'Technical research, methodologies, and insights on digital forensics and incident response.',
+        'Technical research, methodologies, and investigative insights supporting the 2:22 DFIR Framework.',
 };
 
 export default function Research() {
@@ -22,15 +22,17 @@ export default function Research() {
                     <div className="row justify-content-center mb-5">
                         <div className="col-xl-10 col-lg-11">
                             <h1 className="display-6 fw-bold mb-3">
-                                Research & Technical Insights
+                                Research & Technical Foundations
                             </h1>
 
                             <p className="fs-18px text-body text-opacity-75">
-                                2:22 AI research focuses on advancing digital forensics and
-                                incident response through applied machine learning, structured
-                                investigative methodologies, and evidence-centric system design.
-                                The research emphasizes defensibility, transparency, and
-                                analyst-controlled automation.
+                                Research supporting the <strong>2:22 DFIR Framework </strong>
+                                focuses on advancing digital forensic and incident response
+                                methodologies through applied machine learning, structured
+                                investigative models, and evidence-centric system design.
+                                The research emphasizes forensic defensibility, transparency,
+                                and analyst-controlled automation within modern cyber
+                                investigation environments.
                             </p>
                         </div>
                     </div>
@@ -43,28 +45,28 @@ export default function Research() {
                                 <div className="col-lg-6">
                                     <ResearchCard
                                         title="AI-Assisted Timeline Reconstruction"
-                                        desc="Techniques for correlating logs, endpoint telemetry, file system activity, memory artifacts, and network events into defensible investigation timelines. Research emphasizes explainability, analyst validation, and evidentiary traceability."
+                                        desc="Research focuses on techniques for correlating logs, endpoint telemetry, file system artifacts, memory evidence, and network events into defensible investigative timelines. Emphasis is placed on explainability, analyst validation, and evidentiary traceability."
                                     />
                                 </div>
 
                                 <div className="col-lg-6">
                                     <ResearchCard
                                         title="Forensic Integrity in Automated Systems"
-                                        desc="Design patterns and architectural controls that preserve chain-of-custody, evidentiary integrity, and repeatability while introducing automation and AI-assisted workflows into forensic investigations."
+                                        desc="This research area explores architectural design patterns that preserve chain-of-custody, evidentiary integrity, and repeatability while introducing automation and AI-assisted analytical workflows into digital forensic investigations."
                                     />
                                 </div>
 
                                 <div className="col-lg-6">
                                     <ResearchCard
                                         title="Incident Response in Regulated Environments"
-                                        desc="Balancing speed, rigor, and compliance when conducting investigations under frameworks such as ISO 27001, PCI DSS, HIPAA, and sector-specific regulatory obligations."
+                                        desc="Research examines the balance between investigative speed, procedural rigor, and regulatory compliance when conducting digital investigations within frameworks such as ISO 27001, PCI DSS, HIPAA, and sector-specific governance requirements."
                                     />
                                 </div>
 
                                 <div className="col-lg-6">
                                     <ResearchCard
                                         title="Operationalizing DFIR at Scale"
-                                        desc="Lessons learned from large-scale investigations, multi-case environments, and distributed forensic operations. Focus areas include access control, evidence isolation, analyst accountability, and performance under load."
+                                        desc="This area investigates the operational challenges of conducting large-scale digital forensic investigations across multiple cases, distributed infrastructure, and cross-organizational investigative teams."
                                     />
                                 </div>
 
@@ -82,11 +84,14 @@ export default function Research() {
                                     </h5>
 
                                     <p className="text-body text-opacity-75 small mb-0">
-                                        2:22 AI research avoids opaque or autonomous decision-making
-                                        systems. All analytical capabilities are designed to augment
-                                        — not replace — investigator reasoning. Research outputs
-                                        prioritize transparency, reproducibility, and alignment with
-                                        legal and regulatory expectations.
+                                        Research associated with the 2:22 DFIR Framework
+                                        avoids opaque or autonomous decision-making
+                                        systems. Analytical capabilities are designed to
+                                        augment investigator reasoning rather than replace
+                                        it. Research outputs prioritize transparency,
+                                        reproducibility, and alignment with legal,
+                                        evidentiary, and regulatory expectations that
+                                        govern modern digital investigations.
                                     </p>
                                 </div>
 

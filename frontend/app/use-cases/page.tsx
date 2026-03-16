@@ -2,7 +2,7 @@ import Nav from '../../components/Nav';
 import Footer from '../../components/Footer';
 
 export const metadata = {
-    title: 'Use Cases | 2:22 AI',
+    title: 'Use Cases | 2:22 DFIR Framework',
 };
 
 export default function UseCasesPage() {
@@ -16,15 +16,17 @@ export default function UseCasesPage() {
                     <div className="row justify-content-center mb-5">
                         <div className="col-xl-10 col-lg-11">
                             <h1 className="display-6 fw-bold mb-3">
-                                2:22 AI Use Cases
+                                2:22 DFIR Framework Use Cases
                             </h1>
 
                             <p className="fs-18px text-body text-opacity-75">
-                                2:22 AI supports real-world digital forensic and incident
-                                response investigations conducted by security operations
-                                teams, government agencies, and regulated organizations.
-                                Each use case reflects defensible investigative workflows,
-                                not automated black-box decisions.
+                                The <strong>2:22 DFIR Framework</strong> supports
+                                real-world digital forensic and cyber incident
+                                investigations conducted by security operations teams,
+                                government agencies, and regulated organizations.
+                                Each use case reflects defensible investigative
+                                workflows designed to support analyst-led decision
+                                making rather than automated black-box conclusions.
                             </p>
                         </div>
                     </div>
@@ -36,26 +38,26 @@ export default function UseCasesPage() {
 
                                 <div className="col-lg-4">
                                     <UseCaseCard
-                                        title="Incident Response Operations"
-                                        description="Manage end-to-end incident response activities from detection and triage through containment, eradication, and recovery while maintaining forensic defensibility."
+                                        title="Incident Response Investigations"
+                                        description="Support structured incident response investigations from initial detection and forensic triage through containment, remediation, and post-incident analysis while maintaining evidentiary traceability."
                                         points={[
-                                            'Structured case lifecycle management',
-                                            'Analyst-attributed actions and decisions',
-                                            'Immutable audit trails',
-                                            'Evidence-aware task tracking',
+                                            'Structured investigation lifecycle management',
+                                            'Analyst-attributed investigative actions',
+                                            'Immutable investigation audit trails',
+                                            'Evidence-linked investigative tasks',
                                         ]}
                                     />
                                 </div>
 
                                 <div className="col-lg-4">
                                     <UseCaseCard
-                                        title="Ransomware & Intrusion Analysis"
-                                        description="Reconstruct ransomware intrusions by identifying initial access, privilege escalation, lateral movement, persistence mechanisms, and impact across hosts."
+                                        title="Ransomware & Intrusion Investigations"
+                                        description="Reconstruct complex cyber intrusions by identifying initial access vectors, privilege escalation, lateral movement, persistence mechanisms, and operational impact across affected systems."
                                         points={[
-                                            'Kill-chain reconstruction',
-                                            'Multi-host timeline correlation',
+                                            'Cyber kill-chain reconstruction',
+                                            'Cross-host timeline correlation',
                                             'Artifact-level attribution',
-                                            'Support for legal and executive reporting',
+                                            'Evidence-supported executive reporting',
                                         ]}
                                     />
                                 </div>
@@ -63,7 +65,7 @@ export default function UseCasesPage() {
                                 <div className="col-lg-4">
                                     <UseCaseCard
                                         title="Insider Threat Investigations"
-                                        description="Investigate malicious or negligent insider activity by correlating authentication events, file access, endpoint artifacts, and timeline evidence."
+                                        description="Investigate malicious or negligent insider activity by correlating authentication events, endpoint artifacts, file system activity, and investigative timelines across organizational systems."
                                         points={[
                                             'User-centric activity timelines',
                                             'Cross-system identity correlation',
@@ -85,14 +87,14 @@ export default function UseCasesPage() {
                                 <div className="col-lg-6">
                                     <SimpleUseCase
                                         title="Compliance & Regulatory Investigations"
-                                        description="Support investigations required by regulatory and legal frameworks such as ISO 27001, PCI DSS, HIPAA, and internal audit mandates with full evidentiary transparency."
+                                        description="Support digital investigations required by regulatory and legal frameworks such as ISO 27001, PCI DSS, HIPAA, and internal governance mandates through structured evidence collection, traceability, and defensible reporting."
                                     />
                                 </div>
 
                                 <div className="col-lg-6">
                                     <SimpleUseCase
-                                        title="Threat Hunting & Proactive Analysis"
-                                        description="Conduct hypothesis-driven threat hunting across logs, endpoints, and telemetry sources. AI accelerates pattern discovery while analysts retain full control."
+                                        title="Threat Hunting & Proactive Investigation"
+                                        description="Enable hypothesis-driven threat hunting across logs, endpoint telemetry, and network data sources. AI-assisted analysis accelerates pattern discovery while investigators maintain full analytical control."
                                     />
                                 </div>
 

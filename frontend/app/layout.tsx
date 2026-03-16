@@ -65,38 +65,49 @@
  */
 import Script from 'next/script';
 import type { Metadata } from 'next';
-import './globals.css'; // keep ONLY for resets if needed (no Tailwind)
+import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: '2:22 AI | Digital Forensics & Incident Response',
-    template: '%s | 2:22 AI'
+    default: '2:22 DFIR Framework | Digital Forensic & Incident Response Platform',
+    template: '%s | 2:22 DFIR Framework'
   },
+
   description:
-    'Enterprise-grade Digital Forensics & Incident Response platform designed for regulated environments.',
-  metadataBase: new URL('https://2_22AI.dev'),
+    'The 2:22 DFIR Framework is a self-hosted digital forensic and incident response platform designed for evidence-driven cyber investigations in enterprise, government, and regulated environments.',
+
+  metadataBase: new URL('https://222dfir.dev'),
+
   openGraph: {
-    title: '2:22 AI',
+    title: '2:22 DFIR Framework',
     description:
-      'AI-powered Digital Forensics & Incident Response for enterprise and government.',
-    url: 'https://2_22AI.dev',
-    siteName: '2:22 AI',
+      'An autonomous digital forensic and incident response framework designed to support evidence-driven cyber investigations.',
+
+    url: 'https://222dfir.dev',
+
+    siteName: '2:22 DFIR Framework',
+
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: '2:22 AI Platform'
+        alt: '2:22 DFIR Framework Investigation Platform'
       }
     ],
+
     locale: 'en_US',
     type: 'website'
   },
+
   twitter: {
     card: 'summary_large_image',
-    title: '2:22 AI',
+
+    title: '2:22 DFIR Framework',
+
     description:
-      'AI-powered Digital Forensics & Incident Response platform.',
+      'Digital forensic and incident response framework for modern cyber investigations.',
+
     images: ['/og-image.png']
   }
 };
@@ -115,16 +126,17 @@ export default function RootLayout({
       </head>
 
       <body>
-        {/* HUD ROOT CONTAINER — REQUIRED */}
-        <div id="app" className="app" >
+        {/* HUD ROOT CONTAINER */}
+        <div id="app" className="app">
           {children}
         </div>
 
-        {/* HUD CORE JS (DEFERRED) */}
+        {/* HUD CORE JS */}
         <Script
           src="/assets/js/vendor.min.js"
           strategy="afterInteractive"
         />
+
         <Script
           src="/assets/js/app.min.js"
           strategy="afterInteractive"

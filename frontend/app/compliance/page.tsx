@@ -2,9 +2,9 @@ import Nav from '@/components/Nav';
 import Footer from '@/components/Footer';
 
 export const metadata = {
-    title: 'Compliance & Trust | 2:22 AI',
+    title: 'Compliance & Trust | 2:22 DFIR Framework',
     description:
-        'Compliance, security controls, and forensic integrity principles supported by 2:22 AI.',
+        'Compliance principles, governance alignment, and forensic integrity controls supported by the 2:22 DFIR Framework.',
 };
 
 export default function Compliance() {
@@ -28,10 +28,13 @@ export default function Compliance() {
                             </h1>
 
                             <p className="fs-18px text-body text-opacity-75">
-                                2:22 AI is designed to support investigations conducted in
-                                regulated and high-assurance environments. Security controls,
-                                auditability, and evidentiary integrity are built into the
-                                platform architecture rather than added as afterthoughts.
+                                The <strong>2:22 DFIR Framework</strong> is designed to
+                                support cyber investigations conducted within regulated
+                                and high-assurance environments. Security governance,
+                                auditability, and evidentiary integrity are integrated
+                                directly into the framework architecture to ensure that
+                                investigative workflows remain defensible, transparent,
+                                and aligned with modern compliance expectations.
                             </p>
                         </div>
                     </div>
@@ -44,28 +47,28 @@ export default function Compliance() {
                                 <div className="col-lg-6">
                                     <ComplianceCard
                                         title="ISO/IEC 27001 Alignment"
-                                        desc="2:22 AI aligns with information security management principles reflected in ISO/IEC 27001, including risk-based controls, access management, auditability, and secure handling of investigative data."
+                                        desc="The framework supports investigative environments aligned with ISO/IEC 27001 information security management principles, including controlled access to investigative data, operational logging, traceability, and secure evidence handling."
                                     />
                                 </div>
 
                                 <div className="col-lg-6">
                                     <ComplianceCard
-                                        title="SOC 2 Readiness"
-                                        desc="The platform architecture supports SOC 2 Trust Service Criteria, particularly security, availability, and confidentiality, through role-based access controls, logging, and operational transparency."
+                                        title="SOC 2 Governance Principles"
+                                        desc="The platform architecture supports SOC 2 Trust Service Criteria by implementing role-based access controls, operational transparency, audit logging, and controlled access to sensitive investigative artifacts."
                                     />
                                 </div>
 
                                 <div className="col-lg-6">
                                     <ComplianceCard
-                                        title="CJIS-Style Security Controls"
-                                        desc="2:22 AI implements access restriction, activity auditing, and evidence handling patterns consistent with CJIS-style security expectations, supporting sensitive law enforcement and government investigations."
+                                        title="Government & Law Enforcement Controls"
+                                        desc="The framework incorporates access restriction, activity auditing, and evidence governance patterns commonly expected in government and law enforcement investigative environments."
                                     />
                                 </div>
 
                                 <div className="col-lg-6">
                                     <ComplianceCard
                                         title="Forensic Chain of Custody"
-                                        desc="Evidence handling workflows are designed to preserve integrity, traceability, and accountability from ingestion through analysis and reporting, supporting court-admissible and regulator-ready investigations."
+                                        desc="Evidence handling workflows preserve integrity, traceability, and accountability from artifact ingestion through analysis and reporting, ensuring investigations remain court-admissible and regulator-ready."
                                     />
                                 </div>
 
@@ -83,11 +86,14 @@ export default function Compliance() {
                                     </h5>
 
                                     <p className="text-body text-opacity-75 small mb-0">
-                                        2:22 AI is fully self-hosted and open-source. There is no
-                                        vendor telemetry, no external data transmission, and no
-                                        opaque processing logic. Organizations retain full control
-                                        over investigative data, infrastructure, and analytical
-                                        workflows at all times.
+                                        The 2:22 DFIR Framework operates as a fully
+                                        self-hosted and transparent investigation
+                                        environment. There is no vendor telemetry,
+                                        no external transmission of investigative data,
+                                        and no opaque analytical processes. Organizations
+                                        retain full control over investigative evidence,
+                                        infrastructure, and analytical workflows at all
+                                        stages of the investigation lifecycle.
                                     </p>
                                 </div>
 

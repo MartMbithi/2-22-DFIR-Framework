@@ -67,35 +67,45 @@
 export default function Head() {
     return (
         <>
-            <title>2:22 AI | Enterprise Digital Forensics & Incident Response</title>
+            <title>2:22 DFIR Framework | Digital Forensic & Incident Response Platform</title>
 
             <meta
                 name="description"
-                content="2:22 AI is an enterprise-grade AI-powered Digital Forensics & Incident Response platform for security teams, enterprises, and regulated environments."
+                content="The 2:22 DFIR Framework is a self-hosted digital forensic and incident response platform designed for evidence-driven cyber investigations in enterprise, government, and regulated environments."
             />
 
             <meta
                 name="keywords"
-                content="DFIR, Digital Forensics, Incident Response, Cybersecurity, SOC, Threat Investigation, AI Security"
+                content="DFIR Framework, Digital Forensics, Incident Response, Cyber Investigation, Cybersecurity, Threat Investigation, Forensic Analysis, Security Operations"
             />
 
-            <meta name="author" content="2:22 AI" />
+            <meta name="author" content="2:22 DFIR Framework" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
 
             {/* Open Graph */}
-            <meta property="og:title" content="2:22 AI | Enterprise DFIR Platform" />
+            <meta
+                property="og:title"
+                content="2:22 DFIR Framework | Digital Forensic Investigation Platform"
+            />
+
             <meta
                 property="og:description"
-                content="Investigate incidents faster with AI-assisted forensics, immutable audit trails, and compliance-ready workflows."
+                content="An autonomous digital forensic and incident response framework designed to support evidence-driven cyber investigations with hybrid analytical intelligence."
             />
+
             <meta property="og:type" content="website" />
 
             {/* Twitter */}
             <meta name="twitter:card" content="summary_large_image" />
-            <meta name="twitter:title" content="2:22 AI" />
+
+            <meta
+                name="twitter:title"
+                content="2:22 DFIR Framework"
+            />
+
             <meta
                 name="twitter:description"
-                content="Mission-critical Digital Forensics & Incident Response platform."
+                content="A research-driven digital forensic and incident response framework for modern cyber investigations."
             />
         </>
     );

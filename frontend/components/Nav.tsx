@@ -36,9 +36,9 @@ export default function Nav() {
         >
           <span className="brand-logo d-flex">
             <span className="brand-img">
-              <span className="brand-img-text text-theme">D</span>
+              <span className="brand-img-text text-theme">2</span>
             </span>
-            <span className="brand-text">2:22 AI</span>
+            <span className="brand-text">2:22</span>
           </span>
         </Link>
 

@@ -2,9 +2,9 @@ import Nav from '../../components/Nav';
 import Footer from '../../components/Footer';
 
 export const metadata = {
-    title: 'Self-Hosted Deployment | 2:22 AI',
+    title: 'Self-Hosted Deployment | 2:22 DFIR Framework',
     description:
-        'Self-hosted deployment guide for 2:22 AI Community Edition. Installation, configuration, and operational setup.',
+        'Self-hosted deployment guide for the 2:22 DFIR Framework Community Edition.',
 };
 
 export default function SelfHosted() {
@@ -24,22 +24,24 @@ export default function SelfHosted() {
                     <div className="row justify-content-center mb-5">
                         <div className="col-xl-10 col-lg-11">
                             <h1 className="display-6 fw-bold mb-3">
-                                Self-Hosted 2:22 AI (Community Edition)
+                                Self-Hosted 2:22 DFIR Framework
                             </h1>
 
                             <p className="fs-18px text-body text-opacity-75">
-                                2:22 AI Community Edition is a fully self-hosted, open-source
-                                Digital Forensics and Incident Response platform. It is designed
-                                for researchers, security teams, and organizations that require
-                                full control over investigative data, infrastructure, and
-                                operational workflows.
+                                The <strong>2:22 DFIR Framework Community Edition</strong>
+                                is a fully self-hosted, open-source digital forensic and
+                                incident response platform. It enables organizations,
+                                research institutions, and security teams to operate
+                                forensic investigation infrastructure entirely within
+                                their own environment.
                             </p>
 
                             <p className="text-body text-opacity-75">
-                                The platform runs entirely within your environment. There is no
-                                telemetry, no external data transmission, and no vendor
-                                dependency. AI-assisted analysis requires only user-supplied
-                                OpenAI API keys and operates under analyst supervision.
+                                The framework runs locally using the <strong>2:22 Command
+                                    Center Trigger</strong>, which orchestrates backend
+                                services, frontend applications, environment validation,
+                                and system diagnostics. There is no telemetry, no external
+                                data transmission, and no vendor dependency.
                             </p>
                         </div>
                     </div>
@@ -50,15 +52,17 @@ export default function SelfHosted() {
                             <div className="card">
                                 <div className="card-body">
                                     <h5 className="fw-semibold mb-2">
-                                        Deployment Overview
+                                        Deployment Architecture
                                     </h5>
 
                                     <p className="text-body text-opacity-75 small mb-0">
-                                        2:22 AI is composed of a FastAPI-based backend, a Next.js
-                                        frontend, and supporting services such as databases and
-                                        object storage. Components can be deployed on a single host
-                                        for research use or distributed across infrastructure for
-                                        operational environments.
+                                        The framework consists of a FastAPI backend,
+                                        a Next.js investigation interface, and the DFIR
+                                        core analysis engine. The system is orchestrated
+                                        through the 2:22 Command Center Trigger which
+                                        prepares runtime environments, verifies
+                                        dependencies, performs diagnostics, and launches
+                                        platform services.
                                     </p>
                                 </div>
 
@@ -80,39 +84,41 @@ export default function SelfHosted() {
                                 <div className="col-lg-12">
                                     <StepCard
                                         number="01"
-                                        title="Clone the Repository"
-                                        code={`git clone https://github.com/MartMbithi/DFIR_AI.git
-cd DFIR_AI`}
+                                        title="Clone the Framework Repository"
+                                        code={`git clone https://github.com/MartMbithi/2-22-DFIR-Framework.git && cd 2-22-DFIR-Framework`}
                                     />
                                 </div>
 
                                 <div className="col-lg-12">
                                     <StepCard
                                         number="02"
-                                        title="Backend Setup (FastAPI)"
-                                        code={`cd backend
-python -m venv venv
-source venv/bin/activate   # Windows: venv\\Scripts\\activate
-pip install -r requirements.txt
-uvicorn backend.main:app`}
+                                        title="Configure Environment Variables"
+                                        desc="Create a .env configuration file defining database credentials, API endpoints, and optional AI configuration. The Command Center Trigger automatically loads these variables during startup."
                                     />
                                 </div>
 
                                 <div className="col-lg-12">
                                     <StepCard
                                         number="03"
-                                        title="Frontend Setup (Next.js)"
-                                        code={`cd frontend
-npm install
-npm run dev`}
+                                        title="Launch the 2:22 Command Center"
+                                        code={`python trigger_222_command_center.py`}
                                     />
                                 </div>
 
                                 <div className="col-lg-12">
                                     <StepCard
                                         number="04"
-                                        title="Environment Configuration"
-                                        desc="Configure environment variables for database connections, storage backends, secrets, and API endpoints according to your infrastructure. Ensure OpenAI API keys are supplied explicitly by the user if AI-assisted analysis is enabled."
+                                        title="Platform Initialization"
+                                        desc="The Command Center performs automated system checks including Python and Node verification, dependency installation, environment validation, database connectivity, ingestion diagnostics, and backend/frontend startup."
+                                    />
+                                </div>
+
+                                <div className="col-lg-12">
+                                    <StepCard
+                                        number="05"
+                                        title="Access the Investigation Console"
+                                        code={`Frontend: http://localhost:3000
+Backend API: http://localhost:8000/docs`}
                                     />
                                 </div>
 
@@ -130,12 +136,13 @@ npm run dev`}
                                     </h5>
 
                                     <p className="text-body text-opacity-75 small mb-0">
-                                        2:22 AI does not enforce infrastructure choices. Operators
-                                        are responsible for hardening hosts, securing credentials,
-                                        managing backups, and validating compliance with internal
-                                        policies and regulatory requirements. The platform is
-                                        designed to support — not replace — established DFIR
-                                        governance practices.
+                                        The 2:22 DFIR Framework does not impose
+                                        infrastructure constraints. Operators remain
+                                        responsible for host hardening, credential
+                                        management, system backups, and compliance with
+                                        organizational security policies. The framework
+                                        is designed to augment existing DFIR governance
+                                        practices rather than replace them.
                                     </p>
                                 </div>
 
