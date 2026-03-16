@@ -1,10 +1,4 @@
 'use client';
-
-/*
- *   Crafted On Fri Jan 30 2026
- *   Devlan Solutions LTD — DFIR-AI AI
- */
-
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import AuthGuard from '@/components/AuthGuard';
