@@ -50,6 +50,7 @@ const POLL_INTERVAL = 4000;
 /* ================= PAGE ================= */
 
 export default function CaseDetailPage() {
+
     const { case_id } = useParams<{ case_id: string }>();
 
     const [caseData, setCaseData] = useState<Case | null>(null);
@@ -70,6 +71,7 @@ export default function CaseDetailPage() {
     /* ================= LOAD ================= */
 
     async function loadBase() {
+
         const c = await apiFetch(`/cases/${case_id}`);
         const u = await apiFetch(`/cases/${case_id}/uploads`);
         const j = await apiFetch(`/jobs?case_id=${case_id}`);
@@ -95,31 +97,40 @@ export default function CaseDetailPage() {
     /* ================= JOB POLLING ================= */
 
     useEffect(() => {
+
         if (!jobs.some(j => j.job_status === 'queued' || j.job_status === 'running')) {
             return;
         }
 
         const interval = setInterval(async () => {
+
             try {
                 const refreshed = await apiFetch(`/jobs?case_id=${case_id}`);
+
                 setJobs(prev =>
                     prev.map(j => refreshed.find(r => r.job_id === j.job_id) || j)
                 );
+
             } catch {
                 /* silent */
             }
+
         }, POLL_INTERVAL);
 
         return () => clearInterval(interval);
+
     }, [jobs, case_id]);
 
-    /* ================= FILTER + PAGINATION ================= */
+    /* ================= FILTER ================= */
 
     const filteredUploads = useMemo(() => {
+
         const q = search.toLowerCase();
+
         return uploads.filter(u =>
             u.upload_filename.toLowerCase().includes(q)
         );
+
     }, [uploads, search]);
 
     const pageUploads = filteredUploads.slice(
@@ -129,9 +140,10 @@ export default function CaseDetailPage() {
 
     useEffect(() => setPage(1), [search]);
 
-    /* ================= SECURE REPORT DOWNLOAD ================= */
+    /* ================= DOWNLOAD REPORT ================= */
 
     async function downloadReport(reportId: string) {
+
         const res = await fetch(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/reports/${reportId}/download`,
             {
@@ -163,12 +175,17 @@ export default function CaseDetailPage() {
     /* ================= UPLOAD ================= */
 
     async function uploadFiles(e: React.FormEvent) {
+
         e.preventDefault();
+
         if (!files.length) return;
 
         setUploading(true);
+
         try {
+
             for (const file of files) {
+
                 const form = new FormData();
                 form.append('file', file);
 
@@ -187,31 +204,39 @@ export default function CaseDetailPage() {
             setFiles([]);
             setUploadOpen(false);
             await loadBase();
+
         } finally {
             setUploading(false);
         }
     }
 
-    /* ================= DELETE UPLOAD ================= */
+    /* ================= DELETE ================= */
 
     async function confirmDeleteUpload() {
+
         if (!deleteTarget) return;
 
         setDeleting(true);
+
         try {
+
             await apiFetch(`/cases/uploads/${deleteTarget.upload_id}`, {
-                method: 'DELETE',
+                method: 'DELETE'
             });
+
             setDeleteTarget(null);
+
             loadBase();
+
         } finally {
             setDeleting(false);
         }
     }
 
-    /* ================= JOB QUEUE ================= */
+    /* ================= QUEUE JOB ================= */
 
     async function queueJob() {
+
         if (selected.size === 0) return;
 
         await apiFetch('/jobs/', {
@@ -232,33 +257,43 @@ export default function CaseDetailPage() {
     }
 
     return (
+
         <AuthGuard>
+
             <div id="app" className="app app-sidebar-fixed">
 
                 <AppSidebar />
                 <AppTopBar />
 
                 <div id="content" className="app-content">
+
                     <div className="container-fluid">
 
                         {/* HEADER */}
+
                         <div className="row mb-4">
+
                             <div className="col">
                                 <h1 className="mb-1">{caseData.case_name}</h1>
                                 <p className="text-body text-opacity-75 small">
                                     {caseData.case_description || 'No description provided'}
                                 </p>
                             </div>
+
                         </div>
 
                         <div className="row g-4">
 
-                            {/* UPLOADS */}
+                            {/* UPLOAD TABLE */}
+
                             <div className="col-lg-8">
+
                                 <div className="card h-100">
+
                                     <div className="card-body">
 
                                         <div className="d-flex justify-content-between align-items-center mb-3">
+
                                             <input
                                                 className="form-control form-control-sm w-50"
                                                 placeholder="Search uploads…"
@@ -267,12 +302,14 @@ export default function CaseDetailPage() {
                                             />
 
                                             <div className="d-flex gap-2">
+
                                                 <button
                                                     className="btn btn-outline-theme btn-sm"
                                                     onClick={() => setUploadOpen(true)}
                                                 >
                                                     Upload
                                                 </button>
+
                                                 <button
                                                     className="btn btn-outline-primary btn-sm"
                                                     disabled={selected.size === 0}
@@ -280,12 +317,17 @@ export default function CaseDetailPage() {
                                                 >
                                                     Queue Job
                                                 </button>
+
                                             </div>
+
                                         </div>
 
                                         <div className="table-responsive">
+
                                             <table className="table table-hover table-borderless small align-middle mb-0">
+
                                                 <thead className="text-body text-opacity-50">
+
                                                     <tr>
                                                         <th></th>
                                                         <th>File</th>
@@ -293,55 +335,83 @@ export default function CaseDetailPage() {
                                                         <th>Uploaded</th>
                                                         <th className="text-end">Actions</th>
                                                     </tr>
+
                                                 </thead>
+
                                                 <tbody>
+
                                                     {pageUploads.map(u => (
+
                                                         <tr key={u.upload_id}>
+
                                                             <td>
+
                                                                 <input
                                                                     type="checkbox"
                                                                     checked={selected.has(u.upload_id)}
                                                                     onChange={() => {
+
                                                                         const s = new Set(selected);
+
                                                                         s.has(u.upload_id)
                                                                             ? s.delete(u.upload_id)
                                                                             : s.add(u.upload_id);
+
                                                                         setSelected(s);
                                                                     }}
                                                                 />
+
                                                             </td>
-                                                            <td className="font-mono text-xs break-all">
+
+                                                            <td className="font-monospace text-xs break-all">
                                                                 {u.upload_filename}
                                                             </td>
+
                                                             <td>
                                                                 {(u.upload_size / 1024).toFixed(1)} KB
                                                             </td>
+
                                                             <td>
                                                                 {new Date(u.uploaded_at).toLocaleString()}
                                                             </td>
+
                                                             <td className="text-end">
+
                                                                 <button
                                                                     className="btn btn-sm btn-outline-danger"
                                                                     onClick={() => setDeleteTarget(u)}
                                                                 >
                                                                     Delete
                                                                 </button>
+
                                                             </td>
+
                                                         </tr>
+
                                                     ))}
+
                                                 </tbody>
+
                                             </table>
+
                                         </div>
 
                                     </div>
+
                                     <HudArrows />
+
                                 </div>
+
                             </div>
 
                             {/* JOB ACTIVITY */}
+
                             <div className="col-lg-4">
+
                                 <div className="card h-100">
+
                                     <div className="card-body">
+
                                         <h5 className="mb-3">Job Activity</h5>
 
                                         {jobs.length === 0 && (
@@ -351,13 +421,17 @@ export default function CaseDetailPage() {
                                         )}
 
                                         {jobs.map(j => (
+
                                             <div key={j.job_id} className="border rounded p-3 mb-3 small">
-                                                <p className="font-mono text-xs break-all">
+
+                                                <p className="font-monospace text-xs break-all">
                                                     {j.job_id}
                                                 </p>
 
                                                 <p className="mb-2">
-                                                    Status:{' '}
+
+                                                    Status:
+
                                                     <span className={
                                                         j.job_status === 'completed'
                                                             ? 'text-success'
@@ -367,37 +441,213 @@ export default function CaseDetailPage() {
                                                                     ? 'text-primary'
                                                                     : 'text-warning'
                                                     }>
-                                                        {j.job_status}
+
+                                                        {' '}{j.job_status}
+
                                                     </span>
+
                                                 </p>
 
                                                 {j.reports && j.reports.length > 0 && (
+
                                                     <button
                                                         className="btn btn-sm btn-outline-theme"
                                                         onClick={() => {
+
                                                             const latest = [...j.reports!].sort(
                                                                 (a, b) =>
                                                                     new Date(b.report_generated_at).getTime() -
                                                                     new Date(a.report_generated_at).getTime()
                                                             )[0];
+
                                                             downloadReport(latest.report_id);
+
                                                         }}
                                                     >
                                                         Download Report
                                                     </button>
+
                                                 )}
+
                                             </div>
+
                                         ))}
+
                                     </div>
+
                                     <HudArrows />
+
                                 </div>
+
                             </div>
 
                         </div>
+
                     </div>
+
                 </div>
+
             </div>
+
+            {/* ================= UPLOAD MODAL ================= */}
+
+            {uploadOpen && (
+
+                <Modal
+                    title="Ingest Forensic Artifacts"
+                    onClose={() => setUploadOpen(false)}
+                >
+
+                    <form onSubmit={uploadFiles}>
+
+                        <div className="mb-4">
+
+                            <label className="form-label fw-semibold">
+                                Artifact Files
+                            </label>
+
+                            <input
+                                type="file"
+                                className="form-control"
+                                multiple
+                                onChange={e =>
+                                    setFiles(Array.from(e.target.files || []))
+                                }
+                            />
+
+                        </div>
+
+                        {files.length > 0 && (
+
+                            <div className="border rounded p-3 bg-body bg-opacity-25 mb-3">
+
+                                <div className="fw-semibold small mb-2">
+                                    Files staged for ingestion
+                                </div>
+
+                                <ul className="list-unstyled small mb-0">
+
+                                    {files.map((file, idx) => (
+
+                                        <li key={idx} className="d-flex justify-content-between">
+
+                                            <span className="font-monospace">
+                                                {file.name}
+                                            </span>
+
+                                            <span className="text-body text-opacity-50">
+                                                {(file.size / 1024 / 1024).toFixed(2)} MB
+                                            </span>
+
+                                        </li>
+
+                                    ))}
+
+                                </ul>
+
+                            </div>
+
+                        )}
+
+                        <div className="text-end">
+
+                            <button
+                                className="btn btn-outline-theme"
+                                disabled={uploading || files.length === 0}
+                            >
+                                {uploading ? 'Uploading…' : 'Upload'}
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </Modal>
+
+            )}
+
+            {/* ================= DELETE MODAL ================= */}
+
+            {deleteTarget && (
+
+                <Modal
+                    title="Confirm Artifact Deletion"
+                    danger
+                    onClose={() => setDeleteTarget(null)}
+                >
+
+                    <p className="small">
+                        You are about to permanently delete:
+                    </p>
+
+                    <p className="font-monospace text-xs">
+                        {deleteTarget.upload_filename}
+                    </p>
+
+                    <div className="text-end mt-3">
+
+                        <button
+                            className="btn btn-outline-danger"
+                            disabled={deleting}
+                            onClick={confirmDeleteUpload}
+                        >
+                            {deleting ? 'Deleting…' : 'Delete'}
+                        </button>
+
+                    </div>
+
+                </Modal>
+
+            )}
+
         </AuthGuard>
+    );
+}
+
+/* ================= MODAL ================= */
+
+function Modal({
+    title,
+    children,
+    onClose,
+    danger
+}: {
+    title: string;
+    children: React.ReactNode;
+    onClose: () => void;
+    danger?: boolean;
+}) {
+
+    return (
+
+        <div className="modal fade show d-block" tabIndex={-1}>
+
+            <div className="modal-dialog modal-dialog-centered">
+
+                <div className="modal-content">
+
+                    <div className="modal-header">
+
+                        <h5 className={`modal-title ${danger ? 'text-danger' : ''}`}>
+                            {title}
+                        </h5>
+
+                        <button className="btn-close" onClick={onClose}></button>
+
+                    </div>
+
+                    <div className="modal-body">
+                        {children}
+                    </div>
+
+                    <HudArrows />
+
+                </div>
+
+            </div>
+
+        </div>
+
     );
 }
 
