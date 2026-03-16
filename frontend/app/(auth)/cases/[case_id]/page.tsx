@@ -1,5 +1,10 @@
 'use client';
 
+/*
+ *   Crafted On Fri Jan 30 2026
+ *   Devlan Solutions LTD — DFIR-AI AI
+ */
+
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import AuthGuard from '@/components/AuthGuard';
@@ -42,17 +47,6 @@ type Job = {
 const PAGE_SIZE = 6;
 const POLL_INTERVAL = 4000;
 
-const API_BASE =
-    process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-
-/* ================= HELPERS ================= */
-
-function formatSize(bytes: number) {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 /* ================= PAGE ================= */
 
 export default function CaseDetailPage() {
@@ -73,31 +67,25 @@ export default function CaseDetailPage() {
     const [deleteTarget, setDeleteTarget] = useState<Upload | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    /* ================= LOAD DATA ================= */
+    /* ================= LOAD ================= */
 
     async function loadBase() {
-        try {
-            const [c, u, j, r] = await Promise.all([
-                apiFetch(`/cases/${case_id}`),
-                apiFetch(`/cases/${case_id}/uploads`),
-                apiFetch(`/jobs?case_id=${case_id}`),
-                apiFetch(`/reports/case/${case_id}`),
-            ]);
+        const c = await apiFetch(`/cases/${case_id}`);
+        const u = await apiFetch(`/cases/${case_id}/uploads`);
+        const j = await apiFetch(`/jobs?case_id=${case_id}`);
+        const r = await apiFetch(`/reports/case/${case_id}`);
 
-            const enrichedJobs = j.map((job: Job) => ({
-                ...job,
-                reports: r.filter(
-                    (rep: Report) =>
-                        new Date(rep.report_generated_at) >= new Date(job.created_at)
-                ),
-            }));
+        const enrichedJobs = j.map((job: Job) => ({
+            ...job,
+            reports: r.filter(
+                (rep: Report) =>
+                    new Date(rep.report_generated_at) >= new Date(job.created_at)
+            ),
+        }));
 
-            setCaseData(c);
-            setUploads(u);
-            setJobs(enrichedJobs);
-        } catch (err) {
-            console.error('Failed loading case data', err);
-        }
+        setCaseData(c);
+        setUploads(u);
+        setJobs(enrichedJobs);
     }
 
     useEffect(() => {
@@ -107,23 +95,23 @@ export default function CaseDetailPage() {
     /* ================= JOB POLLING ================= */
 
     useEffect(() => {
-        if (!jobs.some(j => j.job_status === 'queued' || j.job_status === 'running'))
+        if (!jobs.some(j => j.job_status === 'queued' || j.job_status === 'running')) {
             return;
+        }
 
         const interval = setInterval(async () => {
             try {
                 const refreshed = await apiFetch(`/jobs?case_id=${case_id}`);
-
                 setJobs(prev =>
-                    prev.map(j => refreshed.find((r: Job) => r.job_id === j.job_id) || j)
+                    prev.map(j => refreshed.find(r => r.job_id === j.job_id) || j)
                 );
-            } catch (err) {
-                console.error('Polling error', err);
+            } catch {
+                /* silent */
             }
         }, POLL_INTERVAL);
 
         return () => clearInterval(interval);
-    }, [jobs.length, case_id]);
+    }, [jobs, case_id]);
 
     /* ================= FILTER + PAGINATION ================= */
 
@@ -141,33 +129,35 @@ export default function CaseDetailPage() {
 
     useEffect(() => setPage(1), [search]);
 
-    /* ================= REPORT DOWNLOAD ================= */
+    /* ================= SECURE REPORT DOWNLOAD ================= */
 
     async function downloadReport(reportId: string) {
-        try {
-            const res = await fetch(`${API_BASE}/reports/${reportId}/download`, {
+        const res = await fetch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/reports/${reportId}/download`,
+            {
+                method: 'GET',
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
                 },
-            });
+            }
+        );
 
-            if (!res.ok) throw new Error('Download failed');
-
-            const blob = await res.blob();
-            const url = window.URL.createObjectURL(blob);
-
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `dfir-report-${reportId}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-
-            window.URL.revokeObjectURL(url);
-        } catch (err) {
-            alert('Report download failed');
-            console.error(err);
+        if (!res.ok) {
+            alert('Failed to download report');
+            return;
         }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `dfir-report-${reportId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        window.URL.revokeObjectURL(url);
     }
 
     /* ================= UPLOAD ================= */
@@ -177,14 +167,13 @@ export default function CaseDetailPage() {
         if (!files.length) return;
 
         setUploading(true);
-
         try {
             for (const file of files) {
                 const form = new FormData();
                 form.append('file', file);
 
-                const res = await fetch(
-                    `${API_BASE}/cases/${case_id}/artifacts/upload`,
+                await fetch(
+                    `${process.env.NEXT_PUBLIC_API_BASE_URL}/cases/${case_id}/artifacts/upload`,
                     {
                         method: 'POST',
                         headers: {
@@ -193,41 +182,28 @@ export default function CaseDetailPage() {
                         body: form,
                     }
                 );
-
-                if (!res.ok) {
-                    const txt = await res.text();
-                    throw new Error(txt || 'Upload failed');
-                }
             }
 
             setFiles([]);
             setUploadOpen(false);
             await loadBase();
-        } catch (err) {
-            console.error(err);
-            alert('Upload failed');
         } finally {
             setUploading(false);
         }
     }
 
-    /* ================= DELETE ================= */
+    /* ================= DELETE UPLOAD ================= */
 
     async function confirmDeleteUpload() {
         if (!deleteTarget) return;
 
         setDeleting(true);
-
         try {
             await apiFetch(`/cases/uploads/${deleteTarget.upload_id}`, {
                 method: 'DELETE',
             });
-
             setDeleteTarget(null);
             loadBase();
-        } catch (err) {
-            alert('Delete failed');
-            console.error(err);
         } finally {
             setDeleting(false);
         }
@@ -238,29 +214,27 @@ export default function CaseDetailPage() {
     async function queueJob() {
         if (selected.size === 0) return;
 
-        try {
-            await apiFetch('/jobs/', {
-                method: 'POST',
-                body: JSON.stringify({
-                    case_id,
-                    upload_ids: Array.from(selected),
-                    job_type: 'dfir_run',
-                }),
-            });
+        await apiFetch('/jobs/', {
+            method: 'POST',
+            body: JSON.stringify({
+                case_id,
+                upload_ids: Array.from(selected),
+                job_type: 'dfir_run',
+            }),
+        });
 
-            setSelected(new Set());
-            loadBase();
-        } catch (err) {
-            alert('Job queue failed');
-            console.error(err);
-        }
+        setSelected(new Set());
+        loadBase();
     }
 
-    if (!caseData) return <div className="p-5">Loading case context…</div>;
+    if (!caseData) {
+        return <div className="p-5">Loading case context…</div>;
+    }
 
     return (
         <AuthGuard>
             <div id="app" className="app app-sidebar-fixed">
+
                 <AppSidebar />
                 <AppTopBar />
 
@@ -268,28 +242,23 @@ export default function CaseDetailPage() {
                     <div className="container-fluid">
 
                         {/* HEADER */}
-
                         <div className="row mb-4">
                             <div className="col">
-                                <h1>{caseData.case_name}</h1>
+                                <h1 className="mb-1">{caseData.case_name}</h1>
                                 <p className="text-body text-opacity-75 small">
                                     {caseData.case_description || 'No description provided'}
                                 </p>
                             </div>
                         </div>
 
-                        {/* CONTENT */}
-
                         <div className="row g-4">
 
-                            {/* UPLOAD TABLE */}
-
+                            {/* UPLOADS */}
                             <div className="col-lg-8">
-                                <div className="card">
+                                <div className="card h-100">
                                     <div className="card-body">
 
-                                        <div className="d-flex justify-content-between mb-3">
-
+                                        <div className="d-flex justify-content-between align-items-center mb-3">
                                             <input
                                                 className="form-control form-control-sm w-50"
                                                 placeholder="Search uploads…"
@@ -298,14 +267,12 @@ export default function CaseDetailPage() {
                                             />
 
                                             <div className="d-flex gap-2">
-
                                                 <button
                                                     className="btn btn-outline-theme btn-sm"
                                                     onClick={() => setUploadOpen(true)}
                                                 >
                                                     Upload
                                                 </button>
-
                                                 <button
                                                     className="btn btn-outline-primary btn-sm"
                                                     disabled={selected.size === 0}
@@ -313,28 +280,23 @@ export default function CaseDetailPage() {
                                                 >
                                                     Queue Job
                                                 </button>
-
                                             </div>
-
                                         </div>
 
                                         <div className="table-responsive">
-                                            <table className="table table-hover small">
-
-                                                <thead>
+                                            <table className="table table-hover table-borderless small align-middle mb-0">
+                                                <thead className="text-body text-opacity-50">
                                                     <tr>
                                                         <th></th>
                                                         <th>File</th>
                                                         <th>Size</th>
                                                         <th>Uploaded</th>
-                                                        <th></th>
+                                                        <th className="text-end">Actions</th>
                                                     </tr>
                                                 </thead>
-
                                                 <tbody>
                                                     {pageUploads.map(u => (
                                                         <tr key={u.upload_id}>
-
                                                             <td>
                                                                 <input
                                                                     type="checkbox"
@@ -348,46 +310,38 @@ export default function CaseDetailPage() {
                                                                     }}
                                                                 />
                                                             </td>
-
                                                             <td className="font-mono text-xs break-all">
                                                                 {u.upload_filename}
                                                             </td>
-
-                                                            <td>{formatSize(u.upload_size)}</td>
-
+                                                            <td>
+                                                                {(u.upload_size / 1024).toFixed(1)} KB
+                                                            </td>
                                                             <td>
                                                                 {new Date(u.uploaded_at).toLocaleString()}
                                                             </td>
-
                                                             <td className="text-end">
-
                                                                 <button
                                                                     className="btn btn-sm btn-outline-danger"
                                                                     onClick={() => setDeleteTarget(u)}
                                                                 >
                                                                     Delete
                                                                 </button>
-
                                                             </td>
-
                                                         </tr>
                                                     ))}
                                                 </tbody>
-
                                             </table>
                                         </div>
 
                                     </div>
+                                    <HudArrows />
                                 </div>
                             </div>
 
-                            {/* JOB PANEL */}
-
+                            {/* JOB ACTIVITY */}
                             <div className="col-lg-4">
-                                <div className="card">
-
+                                <div className="card h-100">
                                     <div className="card-body">
-
                                         <h5 className="mb-3">Job Activity</h5>
 
                                         {jobs.length === 0 && (
@@ -398,12 +352,11 @@ export default function CaseDetailPage() {
 
                                         {jobs.map(j => (
                                             <div key={j.job_id} className="border rounded p-3 mb-3 small">
-
                                                 <p className="font-mono text-xs break-all">
                                                     {j.job_id}
                                                 </p>
 
-                                                <p>
+                                                <p className="mb-2">
                                                     Status:{' '}
                                                     <span className={
                                                         j.job_status === 'completed'
@@ -419,7 +372,6 @@ export default function CaseDetailPage() {
                                                 </p>
 
                                                 {j.reports && j.reports.length > 0 && (
-
                                                     <button
                                                         className="btn btn-sm btn-outline-theme"
                                                         onClick={() => {
@@ -428,95 +380,36 @@ export default function CaseDetailPage() {
                                                                     new Date(b.report_generated_at).getTime() -
                                                                     new Date(a.report_generated_at).getTime()
                                                             )[0];
-
                                                             downloadReport(latest.report_id);
                                                         }}
                                                     >
                                                         Download Report
                                                     </button>
-
                                                 )}
-
                                             </div>
                                         ))}
-
                                     </div>
-
+                                    <HudArrows />
                                 </div>
                             </div>
 
                         </div>
                     </div>
                 </div>
-
-                {/* ================= UPLOAD MODAL ================= */}
-
-                {uploadOpen && (
-                    <div className="modal fade show d-block" style={{ background: '#0008' }}>
-
-                        <div className="modal-dialog">
-                            <div className="modal-content">
-
-                                <div className="modal-header">
-                                    <h5>Upload Evidence Artifacts</h5>
-
-                                    <button
-                                        className="btn-close"
-                                        onClick={() => setUploadOpen(false)}
-                                    />
-                                </div>
-
-                                <form onSubmit={uploadFiles}>
-
-                                    <div className="modal-body">
-
-                                        <input
-                                            type="file"
-                                            multiple
-                                            className="form-control"
-                                            onChange={e => {
-                                                if (!e.target.files) return;
-                                                setFiles(Array.from(e.target.files));
-                                            }}
-                                        />
-
-                                        {files.length > 0 && (
-                                            <p className="small mt-2 text-body text-opacity-75">
-                                                {files.length} file(s) selected
-                                            </p>
-                                        )}
-
-                                    </div>
-
-                                    <div className="modal-footer">
-
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline-secondary"
-                                            onClick={() => setUploadOpen(false)}
-                                        >
-                                            Cancel
-                                        </button>
-
-                                        <button
-                                            type="submit"
-                                            className="btn btn-theme"
-                                            disabled={uploading}
-                                        >
-                                            {uploading ? 'Uploading...' : 'Upload'}
-                                        </button>
-
-                                    </div>
-
-                                </form>
-
-                            </div>
-                        </div>
-
-                    </div>
-                )}
-
             </div>
         </AuthGuard>
+    );
+}
+
+/* ================= HUD ================= */
+
+function HudArrows() {
+    return (
+        <div className="card-arrow">
+            <div className="card-arrow-top-left"></div>
+            <div className="card-arrow-top-right"></div>
+            <div className="card-arrow-bottom-left"></div>
+            <div className="card-arrow-bottom-right"></div>
+        </div>
     );
 }
