@@ -126,6 +126,7 @@ export default function RootLayout({
       </head>
 
       <body>
+
         {/* HUD ROOT CONTAINER */}
         <div id="app" className="app">
           {children}

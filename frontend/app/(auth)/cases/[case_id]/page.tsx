@@ -1,77 +1,106 @@
-'use client';
+/*
+ *   Crafted On Fri Jan 30 2026
+ *   Devlan Solutions LTD — 2:22 AI
+ */
 
-import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
-import AuthGuard from '@/components/AuthGuard';
-import AppSidebar from '@/components/AppSidebar';
-import AppTopBar from '@/components/AppTopBar';
-import { apiFetch } from '@/lib/api';
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+import { useParams } from 'next/navigation'
+import AuthGuard from '@/components/AuthGuard'
+import AppSidebar from '@/components/AppSidebar'
+import AppTopBar from '@/components/AppTopBar'
+import { apiFetch } from '@/lib/api'
 
 /* ================= TYPES ================= */
 
 type Case = {
-    case_id: string;
-    case_name: string;
-    case_description?: string;
-};
+    case_id: string
+    case_name: string
+    case_description?: string
+}
 
 type Upload = {
-    upload_id: string;
-    upload_filename: string;
-    upload_size: number;
-    uploaded_at: string;
-};
+    upload_id: string
+    upload_filename: string
+    upload_size: number
+    uploaded_at: string
+}
+
+type Artifact = {
+    artifact_id: string
+    artifact_type?: string
+    ingested_at: string
+}
 
 type Report = {
-    report_id: string;
-    report_type: string;
-    report_generated_at: string;
-};
+    report_id: string
+    report_type: string
+    report_generated_at: string
+}
 
 type Job = {
-    job_id: string;
-    job_status: 'queued' | 'running' | 'completed' | 'failed';
-    created_at: string;
-    job_stage?: string;
-    reports?: Report[];
-};
+    job_id: string
+    case_id: string
+    job_type: string
+    job_status: 'queued' | 'running' | 'completed' | 'failed'
+    job_progress?: string | null
+    created_at: string
+    started_at?: string | null
+    completed_at?: string | null
+}
+
+type JobProgress = {
+    percent?: number
+    message?: string
+}
+
+type JobStage = {
+    stage: string
+    status: 'pending' | 'running' | 'completed'
+}
 
 /* ================= CONFIG ================= */
 
-const PAGE_SIZE = 6;
-const POLL_INTERVAL = 4000;
+const PAGE_SIZE = 6
+const POLL_INTERVAL = 4000
 
 /* ================= PAGE ================= */
 
 export default function CaseDetailPage() {
 
-    const { case_id } = useParams<{ case_id: string }>();
+    const { case_id } = useParams<{ case_id: string }>()
 
-    const [caseData, setCaseData] = useState<Case | null>(null);
-    const [uploads, setUploads] = useState<Upload[]>([]);
-    const [jobs, setJobs] = useState<Job[]>([]);
+    const [caseData, setCaseData] = useState<Case | null>(null)
+    const [uploads, setUploads] = useState<Upload[]>([])
+    const [artifacts, setArtifacts] = useState<Artifact[]>([])
+    const [jobs, setJobs] = useState<Job[]>([])
 
-    const [search, setSearch] = useState('');
-    const [page, setPage] = useState(1);
-    const [selected, setSelected] = useState<Set<string>>(new Set());
+    const [jobProgress, setJobProgress] = useState<Record<string, JobProgress>>({})
+    const [jobStages, setJobStages] = useState<Record<string, JobStage[]>>({})
 
-    const [uploadOpen, setUploadOpen] = useState(false);
-    const [files, setFiles] = useState<File[]>([]);
-    const [uploading, setUploading] = useState(false);
+    const [search, setSearch] = useState('')
+    const [page, setPage] = useState(1)
+    const [selected, setSelected] = useState<Set<string>>(new Set())
 
-    const [deleteTarget, setDeleteTarget] = useState<Upload | null>(null);
-    const [deleting, setDeleting] = useState(false);
+    const [uploadOpen, setUploadOpen] = useState(false)
+    const [files, setFiles] = useState<File[]>([])
+    const [uploading, setUploading] = useState(false)
+
+    const [deleteTarget, setDeleteTarget] = useState<Upload | null>(null)
+    const [deleting, setDeleting] = useState(false)
 
     /* ================= LOAD ================= */
 
     async function loadBase() {
 
-        const [c, u, j, r] = await Promise.all([
+        const [c, u, j, r, a] = await Promise.all([
             apiFetch(`/cases/${case_id}`),
             apiFetch(`/cases/${case_id}/uploads`),
             apiFetch(`/jobs?case_id=${case_id}`),
-            apiFetch(`/reports/case/${case_id}`)
-        ]);
+            apiFetch(`/reports/case/${case_id}`),
+            apiFetch(`/artifacts/artifacts?case_id=${case_id}`)
+        ])
 
         const enriched = j.map((job: Job) => ({
             ...job,
@@ -79,65 +108,76 @@ export default function CaseDetailPage() {
                 (rep: Report) =>
                     new Date(rep.report_generated_at) >= new Date(job.created_at)
             )
-        }));
+        }))
 
-        setCaseData(c);
-        setUploads(u);
-        setJobs(enriched);
+        setCaseData(c)
+        setUploads(u)
+        setJobs(enriched)
+        setArtifacts(a)
     }
 
     useEffect(() => {
-        loadBase();
-    }, []);
+        loadBase()
+    }, [])
 
-    /* ================= JOB POLLING ================= */
+    /* ================= POLLING ================= */
 
     useEffect(() => {
-
-        if (!jobs.some(j => j.job_status === 'queued' || j.job_status === 'running')) {
-            return;
-        }
 
         const interval = setInterval(async () => {
 
             try {
 
-                const refreshed = await apiFetch(`/jobs?case_id=${case_id}`);
+                const refreshed = await apiFetch(`/jobs?case_id=${case_id}`)
+                setJobs(refreshed)
 
-                setJobs(prev =>
-                    prev.map(j => refreshed.find((r: Job) => r.job_id === j.job_id) || j)
-                );
+                for (const job of refreshed) {
 
-            } catch {
-                console.warn("Polling failed");
-            }
+                    try {
 
-        }, POLL_INTERVAL);
+                        const progress = await apiFetch(`/jobs/${job.job_id}/progress`)
+                        const stages = await apiFetch(`/jobs/${job.job_id}/stages`)
 
-        return () => clearInterval(interval);
+                        setJobProgress(prev => ({
+                            ...prev,
+                            [job.job_id]: progress
+                        }))
 
-    }, [jobs.length, case_id]);
+                        setJobStages(prev => ({
+                            ...prev,
+                            [job.job_id]: stages
+                        }))
 
-    /* ================= FILTER + PAGINATION ================= */
+                    } catch { }
+
+                }
+
+            } catch { }
+
+        }, POLL_INTERVAL)
+
+        return () => clearInterval(interval)
+
+    }, [case_id])
+
+    /* ================= FILTER ================= */
 
     const filteredUploads = useMemo(() => {
 
-        const q = search.toLowerCase();
+        const q = search.toLowerCase()
 
         return uploads.filter(u =>
             u.upload_filename.toLowerCase().includes(q)
-        );
+        )
 
-    }, [uploads, search]);
+    }, [uploads, search])
 
     const pageUploads = filteredUploads.slice(
         (page - 1) * PAGE_SIZE,
         page * PAGE_SIZE
-    );
+    )
 
-    useEffect(() => setPage(1), [search]);
-
-    /* ================= DOWNLOAD REPORT ================= */
+    /* ================= REPORT DOWNLOAD ================= */
 
     async function downloadReport(reportId: string) {
 
@@ -148,44 +188,37 @@ export default function CaseDetailPage() {
                     Authorization: `Bearer ${localStorage.getItem('token')}`
                 }
             }
-        );
+        )
 
-        if (!res.ok) {
-            alert("Report download failed");
-            return;
-        }
+        const blob = await res.blob()
+        const url = window.URL.createObjectURL(blob)
 
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `dfir-report-${reportId}.pdf`
+        a.click()
 
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `dfir-report-${reportId}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-
-        window.URL.revokeObjectURL(url);
+        window.URL.revokeObjectURL(url)
     }
 
     /* ================= UPLOAD ================= */
 
     async function uploadFiles(e: React.FormEvent) {
 
-        e.preventDefault();
+        e.preventDefault()
 
-        if (!files.length) return;
+        if (!files.length) return
 
-        setUploading(true);
+        setUploading(true)
 
         try {
 
             for (const file of files) {
 
-                const form = new FormData();
-                form.append('file', file);
+                const form = new FormData()
+                form.append('file', file)
 
-                const res = await fetch(
+                await fetch(
                     `${process.env.NEXT_PUBLIC_API_BASE_URL}/cases/${case_id}/artifacts/upload`,
                     {
                         method: 'POST',
@@ -194,58 +227,40 @@ export default function CaseDetailPage() {
                         },
                         body: form
                     }
-                );
-
-                if (!res.ok) {
-                    throw new Error("Upload failed");
-                }
+                )
             }
 
-            setFiles([]);
-            setUploadOpen(false);
-            loadBase();
-
-        } catch (err) {
-
-            console.error(err);
-            alert("Upload failed");
+            setFiles([])
+            setUploadOpen(false)
+            loadBase()
 
         } finally {
-
-            setUploading(false);
-
+            setUploading(false)
         }
     }
 
-    /* ================= DELETE UPLOAD ================= */
+    /* ================= DELETE ================= */
 
     async function confirmDeleteUpload() {
 
-        if (!deleteTarget) return;
+        if (!deleteTarget) return
 
-        setDeleting(true);
+        setDeleting(true)
 
         try {
 
-            await apiFetch(`/uploads/${deleteTarget.upload_id}`, {
+            await apiFetch(`/cases/uploads/${deleteTarget.upload_id}`, {
                 method: 'DELETE'
-            });
+            })
 
             setUploads(prev =>
                 prev.filter(u => u.upload_id !== deleteTarget.upload_id)
-            );
+            )
 
-            setDeleteTarget(null);
-
-        } catch (err) {
-
-            console.error(err);
-            alert("Delete failed");
+            setDeleteTarget(null)
 
         } finally {
-
-            setDeleting(false);
-
+            setDeleting(false)
         }
     }
 
@@ -253,33 +268,21 @@ export default function CaseDetailPage() {
 
     async function queueJob() {
 
-        if (selected.size === 0) return;
+        await apiFetch('/jobs/', {
+            method: 'POST',
+            body: JSON.stringify({
+                case_id,
+                job_type: 'dfir_run'
+            })
+        })
 
-        try {
-
-            await apiFetch('/jobs', {
-                method: 'POST',
-                body: JSON.stringify({
-                    case_id,
-                    upload_ids: Array.from(selected),
-                    job_type: 'dfir'
-                })
-            });
-
-            setSelected(new Set());
-            loadBase();
-
-        } catch (err) {
-
-            console.error(err);
-            alert("Failed to queue DFIR job");
-
-        }
+        loadBase()
     }
 
-    if (!caseData) return <div className="p-5">Loading case context…</div>;
+    if (!caseData) return <div className="p-5">Loading case context…</div>
 
     return (
+
         <AuthGuard>
 
             <div id="app" className="app app-sidebar-fixed">
@@ -288,22 +291,28 @@ export default function CaseDetailPage() {
                 <AppTopBar />
 
                 <div id="content" className="app-content">
+
                     <div className="container-fluid">
 
                         {/* HEADER */}
 
                         <div className="row mb-4">
+
                             <div className="col">
+
                                 <h1>{caseData.case_name}</h1>
+
                                 <p className="text-body text-opacity-75 small">
                                     {caseData.case_description || 'No description provided'}
                                 </p>
+
                             </div>
+
                         </div>
 
                         <div className="row g-4">
 
-                            {/* UPLOAD TABLE */}
+                            {/* UPLOADS */}
 
                             <div className="col-lg-8">
 
@@ -315,98 +324,65 @@ export default function CaseDetailPage() {
 
                                             <input
                                                 className="form-control form-control-sm w-50"
-                                                placeholder="Search uploads…"
+                                                placeholder="Search uploads"
                                                 value={search}
                                                 onChange={e => setSearch(e.target.value)}
                                             />
 
-                                            <div className="d-flex gap-2">
-
-                                                <button
-                                                    className="btn btn-outline-theme btn-sm"
-                                                    onClick={() => setUploadOpen(true)}
-                                                >
-                                                    Upload
-                                                </button>
-
-                                                <button
-                                                    className="btn btn-outline-primary btn-sm"
-                                                    disabled={selected.size === 0}
-                                                    onClick={queueJob}
-                                                >
-                                                    Queue Job
-                                                </button>
-
-                                            </div>
+                                            <button
+                                                className="btn btn-outline-primary btn-sm"
+                                                onClick={queueJob}
+                                            >
+                                                Run DFIR
+                                            </button>
 
                                         </div>
 
-                                        <div className="table-responsive">
+                                        <table className="table table-hover small">
 
-                                            <table className="table table-hover small">
+                                            <thead>
+                                                <tr>
+                                                    <th>File</th>
+                                                    <th>Size</th>
+                                                    <th>Uploaded</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
 
-                                                <thead>
-                                                    <tr>
-                                                        <th></th>
-                                                        <th>File</th>
-                                                        <th>Size</th>
-                                                        <th>Uploaded</th>
-                                                        <th></th>
+                                            <tbody>
+
+                                                {pageUploads.map(u => (
+
+                                                    <tr key={u.upload_id}>
+
+                                                        <td>{u.upload_filename}</td>
+
+                                                        <td>
+                                                            {(u.upload_size / 1024).toFixed(1)} KB
+                                                        </td>
+
+                                                        <td>
+                                                            {new Date(u.uploaded_at).toLocaleString()}
+                                                        </td>
+
+                                                        <td>
+
+                                                            <button
+                                                                className="btn btn-sm btn-outline-danger"
+                                                                onClick={() => setDeleteTarget(u)}
+                                                            >
+                                                                Delete
+                                                            </button>
+
+                                                        </td>
+
                                                     </tr>
-                                                </thead>
 
-                                                <tbody>
+                                                ))}
 
-                                                    {pageUploads.map(u => (
+                                            </tbody>
 
-                                                        <tr key={u.upload_id}>
-
-                                                            <td>
-
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={selected.has(u.upload_id)}
-                                                                    onChange={() => {
-
-                                                                        const s = new Set(selected);
-
-                                                                        s.has(u.upload_id)
-                                                                            ? s.delete(u.upload_id)
-                                                                            : s.add(u.upload_id);
-
-                                                                        setSelected(s);
-
-                                                                    }}
-                                                                />
-
-                                                            </td>
-
-                                                            <td className="font-mono">{u.upload_filename}</td>
-
-                                                            <td>{(u.upload_size / 1024).toFixed(1)} KB</td>
-
-                                                            <td>{new Date(u.uploaded_at).toLocaleString()}</td>
-
-                                                            <td className="text-end">
-
-                                                                <button
-                                                                    className="btn btn-sm btn-outline-danger"
-                                                                    onClick={() => setDeleteTarget(u)}
-                                                                >
-                                                                    Delete
-                                                                </button>
-
-                                                            </td>
-
-                                                        </tr>
-
-                                                    ))}
-
-                                                </tbody>
-
-                                            </table>
-
-                                        </div>
+                                        </table>
 
                                     </div>
 
@@ -416,7 +392,7 @@ export default function CaseDetailPage() {
 
                             </div>
 
-                            {/* JOB ACTIVITY */}
+                            {/* JOBS */}
 
                             <div className="col-lg-4">
 
@@ -424,51 +400,55 @@ export default function CaseDetailPage() {
 
                                     <div className="card-body">
 
-                                        <h5 className="mb-3">Job Activity</h5>
+                                        <h5>DFIR Jobs</h5>
 
-                                        {jobs.length === 0 && (
-                                            <p className="small text-body text-opacity-50">
-                                                No jobs queued yet
-                                            </p>
-                                        )}
+                                        {jobs.map(job => (
 
-                                        {jobs.map(j => (
+                                            <div key={job.job_id} className="border rounded p-3 mb-3">
 
-                                            <div key={j.job_id} className="border rounded p-3 mb-3 small">
+                                                <div className="font-monospace small mb-1">
+                                                    {job.job_id}
+                                                </div>
 
-                                                <p className="font-mono">{j.job_id}</p>
+                                                <div className="small mb-2">
+                                                    Status: {job.job_status}
+                                                </div>
 
-                                                <p className="mb-1">
-                                                    Status:
-                                                    <span className="ms-2">
-                                                        {j.job_status}
-                                                    </span>
-                                                </p>
+                                                {jobProgress[job.job_id]?.percent && (
 
-                                                {j.job_stage && (
-                                                    <p className="text-body text-opacity-50 small">
-                                                        Stage: {j.job_stage}
-                                                    </p>
+                                                    <div className="progress mb-2">
+
+                                                        <div
+                                                            className="progress-bar"
+                                                            style={{
+                                                                width: `${jobProgress[job.job_id].percent}%`
+                                                            }}
+                                                        />
+
+                                                    </div>
+
                                                 )}
 
-                                                {j.reports && j.reports.length > 0 && (
+                                                {jobStages[job.job_id] && (
 
-                                                    <button
-                                                        className="btn btn-sm btn-outline-theme"
-                                                        onClick={() => {
+                                                    <div className="small">
 
-                                                            const latest = [...j.reports!].sort(
-                                                                (a, b) =>
-                                                                    new Date(b.report_generated_at).getTime() -
-                                                                    new Date(a.report_generated_at).getTime()
-                                                            )[0];
+                                                        {jobStages[job.job_id].map(stage => (
 
-                                                            downloadReport(latest.report_id);
+                                                            <div
+                                                                key={stage.stage}
+                                                                className="d-flex justify-content-between"
+                                                            >
 
-                                                        }}
-                                                    >
-                                                        Download Report
-                                                    </button>
+                                                                <span>{stage.stage}</span>
+
+                                                                <span>{stage.status}</span>
+
+                                                            </div>
+
+                                                        ))}
+
+                                                    </div>
 
                                                 )}
 
@@ -487,83 +467,31 @@ export default function CaseDetailPage() {
                         </div>
 
                     </div>
+
                 </div>
 
             </div>
 
-            {/* DELETE MODAL */}
-
-            {deleteTarget && (
-
-                <div className="modal fade show d-block">
-
-                    <div className="modal-dialog modal-dialog-centered">
-
-                        <div className="modal-content">
-
-                            <div className="modal-header">
-
-                                <h5 className="modal-title text-danger">
-                                    Confirm Upload Deletion
-                                </h5>
-
-                                <button
-                                    className="btn-close"
-                                    onClick={() => setDeleteTarget(null)}
-                                />
-
-                            </div>
-
-                            <div className="modal-body">
-
-                                <p>You are about to delete:</p>
-
-                                <p className="fw-semibold font-mono">
-                                    {deleteTarget.upload_filename}
-                                </p>
-
-                            </div>
-
-                            <div className="modal-footer">
-
-                                <button
-                                    className="btn btn-outline-secondary"
-                                    onClick={() => setDeleteTarget(null)}
-                                >
-                                    Cancel
-                                </button>
-
-                                <button
-                                    className="btn btn-outline-danger"
-                                    disabled={deleting}
-                                    onClick={confirmDeleteUpload}
-                                >
-                                    {deleting ? "Deleting…" : "Delete Upload"}
-                                </button>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            )}
-
         </AuthGuard>
-    );
+
+    )
 }
 
 /* ================= HUD ================= */
 
 function HudArrows() {
+
     return (
+
         <div className="card-arrow">
+
             <div className="card-arrow-top-left"></div>
             <div className="card-arrow-top-right"></div>
             <div className="card-arrow-bottom-left"></div>
             <div className="card-arrow-bottom-right"></div>
+
         </div>
-    );
+
+    )
+
 }
