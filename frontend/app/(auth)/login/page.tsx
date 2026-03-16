@@ -63,7 +63,7 @@ export default function Login() {
                                     </h1>
 
                                     <p className="text-body text-opacity-75 small mb-4">
-                                        Access your 2:22 AI investigation workspace.
+                                        Access your 2:22 framework investigation workspace.
                                     </p>
 
                                     <form onSubmit={submit}>
@@ -113,7 +113,7 @@ export default function Login() {
 
                                     <div className="text-center mt-4 small">
                                         <span className="text-body text-opacity-75">
-                                            New to 2:22 AI?
+                                            New to 2:22 framework?
                                         </span>{' '}
                                         <a href="/register" className="text-theme fw-semibold">
                                             Create an account

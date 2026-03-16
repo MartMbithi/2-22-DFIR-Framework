@@ -57,7 +57,7 @@ export default function Register() {
                                     </h1>
 
                                     <p className="text-body text-opacity-75 small mb-4">
-                                        Register to access the 2:22 AI investigation platform.
+                                        Register to access the 2:22 framework investigation platform.
                                     </p>
 
                                     <form onSubmit={submit}>
