@@ -1,6 +1,6 @@
 /*
  *   Crafted On Fri Jan 30 2026
- *   Devlan Solutions LTD — 2:22 AI
+ *   Devlan Solutions LTD — 2:22 DFIR
  */
 
 'use client';
@@ -20,11 +20,13 @@ export default function AppSidebar() {
             {/* ================= SIDEBAR ================= */}
 
             <div id="sidebar" className="app-sidebar">
+
                 <div
                     className="app-sidebar-content"
                     data-scrollbar="true"
                     data-height="100%"
                 >
+
                     <div className="menu">
 
                         {/* ================= CORE ================= */}
@@ -44,6 +46,8 @@ export default function AppSidebar() {
                             </Link>
                         </div>
 
+                        <div className="menu-divider"></div>
+
                         {/* ================= INVESTIGATIONS ================= */}
 
                         <div className="menu-header">
@@ -61,24 +65,43 @@ export default function AppSidebar() {
                             </Link>
                         </div>
 
+                        <div className={`menu-item ${isActive('/uploads') ? 'active' : ''}`}>
+                            <Link href="/uploads" className="menu-link">
+                                <span className="menu-icon">
+                                    <i className="bi bi-cloud-upload"></i>
+                                </span>
+                                <span className="menu-text">
+                                    Evidence Uploads
+                                </span>
+                            </Link>
+                        </div>
+
                         <div className={`menu-item ${isActive('/artifacts') ? 'active' : ''}`}>
                             <Link href="/artifacts" className="menu-link">
                                 <span className="menu-icon">
                                     <i className="bi bi-hdd-stack"></i>
                                 </span>
                                 <span className="menu-text">
-                                    Evidence Artifacts
+                                    Artifacts
                                 </span>
                             </Link>
+                        </div>
+
+                        <div className="menu-divider"></div>
+
+                        {/* ================= PROCESSING ================= */}
+
+                        <div className="menu-header">
+                            Analysis Engine
                         </div>
 
                         <div className={`menu-item ${isActive('/jobs') ? 'active' : ''}`}>
                             <Link href="/jobs" className="menu-link">
                                 <span className="menu-icon">
-                                    <i className="bi bi-cpu-fill"></i>
+                                    <i className="bi bi-cpu"></i>
                                 </span>
                                 <span className="menu-text">
-                                    DFIR Processing
+                                    Analysis Jobs
                                 </span>
                             </Link>
                         </div>
@@ -89,7 +112,7 @@ export default function AppSidebar() {
                                     <i className="bi bi-file-earmark-text"></i>
                                 </span>
                                 <span className="menu-text">
-                                    Reports
+                                    Investigation Reports
                                 </span>
                             </Link>
                         </div>
@@ -124,22 +147,32 @@ export default function AppSidebar() {
                             </Link>
                         </div>
 
-                        <div className={`menu-item ${isActive('/settings') ? 'active' : ''}`}>
-                            <Link href="/settings" className="menu-link">
+                        <div className="menu-divider"></div>
+
+                        {/* ================= ACCOUNT ================= */}
+
+                        <div className="menu-header">
+                            Account
+                        </div>
+
+                        <div className={`menu-item ${isActive('/profile') ? 'active' : ''}`}>
+                            <Link href="/profile" className="menu-link">
                                 <span className="menu-icon">
-                                    <i className="bi bi-gear"></i>
+                                    <i className="bi bi-person-circle"></i>
                                 </span>
                                 <span className="menu-text">
-                                    Settings
+                                    Profile
                                 </span>
                             </Link>
                         </div>
 
                     </div>
+
                 </div>
+
             </div>
 
-            {/* ================= MOBILE BACKDROP ================= */}
+            {/* ================= MOBILE SIDEBAR BACKDROP ================= */}
 
             <button
                 className="app-sidebar-mobile-backdrop"
