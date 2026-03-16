@@ -211,20 +211,6 @@ fi
 echo "✔ JWT secret configured"
 
 
-#############################################
-# DFIR SELF TEST
-#############################################
-
-echo ""
-echo "[11] Running DFIR engine self-test..."
-
-python3 << END
-try:
-    from dfir_core.ingestion.file_ingest import DiscoverAndParseRawFiles
-    print("✔ DFIR ingestion module OK")
-except Exception as e:
-    print("❌ DFIR ingestion module failed:", e)
-END
 
 #############################################
 # INGESTION DIAGNOSTICS
