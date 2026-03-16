@@ -21,30 +21,31 @@ export default function Home() {
             {/* LEFT: CORE STATEMENT */}
             <div className="col-lg-6">
               <h1 className="display-6 fw-600 mb-3 mt-4">
-                Digital Forensics &<br />
-                Incident Response<br />
-                <span className="text-theme">Powered by AI</span>
+                The 2:22 DFIR Framework<br />
+                Digital Forensic Investigation<br />
+                <span className="text-theme">Signal → Evidence → Truth</span>
               </h1>
 
               <p className="fs-18px text-body text-opacity-75 mb-4">
-                2:22 AI is a self-hosted, open-source Digital Forensics and Incident
-                Response platform built to support security analysts, incident
-                responders, and investigators conducting evidence-driven
-                investigations in enterprise and regulated environments.
+                The <strong>2:22 DFIR Framework</strong> is an autonomous digital
+                forensic and incident response platform designed to support
+                evidence-driven cyber investigations within modern information
+                systems. The framework enables investigators to collect,
+                correlate, and analyse digital artifacts while maintaining
+                strict forensic integrity and evidentiary traceability.
               </p>
 
               <p className="text-body text-opacity-75">
-                The platform augments established DFIR methodologies with
-                AI-assisted correlation, timeline reconstruction, and report
-                generation while preserving forensic integrity, analyst control,
-                and evidentiary admissibility. 2:22 AI does not transmit data
-                externally and operates entirely within the user’s infrastructure,
-                requiring only user-supplied OpenAI API keys.
+                The platform integrates deterministic forensic analysis with
+                AI-assisted investigative support. This hybrid approach improves
+                the efficiency of cyber incident analysis while preserving
+                analyst authority, evidentiary reliability, and investigative
+                transparency throughout the investigation lifecycle.
               </p>
 
               <div className="mt-4 mb-4">
                 <a href="/docs" className="btn btn-lg btn-outline-theme me-2">
-                  Documentation <i className="fa fa-arrow-right ms-2 opacity-5"></i>
+                  Framework Documentation <i className="fa fa-arrow-right ms-2 opacity-5"></i>
                 </a>
 
                 <a href="/self-hosted" className="btn btn-lg btn-outline-white">
@@ -57,7 +58,7 @@ export default function Home() {
             <div className="col-lg-6 d-none d-lg-block">
               <img
                 src="/assets/img/landing/app_mockup.png"
-                alt="2:22 AI Investigation Console"
+                alt="2:22 DFIR Investigation Console"
                 className="w-100 shadow-lg"
               />
             </div>
@@ -72,41 +73,44 @@ export default function Home() {
         <div className="container-xxl p-3 p-lg-5">
 
           <div className="text-center mb-5">
-            <h1 className="mb-3">Purpose & Design Philosophy</h1>
+            <h1 className="mb-3">Framework Philosophy</h1>
             <p className="fs-16px text-body text-opacity-50">
-              2:22 AI was designed to address limitations in modern incident
-              response tooling: fragmented workflows, excessive manual effort,
-              and opaque vendor-controlled platforms.
+              The 2:22 DFIR Framework addresses key challenges in cyber incident
+              investigation by reducing investigative complexity, strengthening
+              artifact correlation, and preserving forensic defensibility across
+              the entire investigation lifecycle.
             </p>
           </div>
 
           <div className="row g-4">
             <div className="col-lg-4">
-              <h4>Forensic Soundness</h4>
+              <h4>Forensic Integrity</h4>
               <p>
-                Every artifact processed by 2:22 AI is cryptographically hashed,
-                time-aligned, and traceable throughout its lifecycle. The system
-                enforces handling practices consistent with court-admissible and
-                regulator-ready investigations.
+                All artifacts processed within the framework remain preserved
+                in their original state, cryptographically verified, and fully
+                traceable throughout the investigative workflow. This approach
+                supports evidentiary reliability and enables regulator-ready and
+                court-admissible investigations.
               </p>
             </div>
 
             <div className="col-lg-4">
-              <h4>Analyst-Centric AI</h4>
+              <h4>Analyst-Driven Intelligence</h4>
               <p>
-                AI within 2:22 AI operates strictly as an analytical assistant.
-                It accelerates correlation, summarization, and hypothesis
-                generation while leaving interpretation and final judgement
-                entirely to the investigator.
+                AI capabilities operate strictly as investigative assistance.
+                The system accelerates correlation, summarization, and analytical
+                reasoning while ensuring that interpretation and investigative
+                judgement remain under the control of the analyst.
               </p>
             </div>
 
             <div className="col-lg-4">
-              <h4>Open & Self-Hosted</h4>
+              <h4>Open Investigation Architecture</h4>
               <p>
-                2:22 AI is fully self-hosted and open-source. There is no telemetry,
-                no data exfiltration, and no vendor lock-in. Organizations retain
-                full visibility and control over their investigative workflows.
+                The framework operates as a fully self-hosted investigation
+                platform. Organizations retain complete control over their
+                forensic evidence, investigative processes, and infrastructure
+                without reliance on external vendor telemetry.
               </p>
             </div>
           </div>
@@ -120,10 +124,10 @@ export default function Home() {
         <div className="container-xxl p-3 p-lg-5">
 
           <div className="text-center mb-5">
-            <h1 className="mb-3">Core Capabilities</h1>
+            <h1 className="mb-3">Investigative Capabilities</h1>
             <p className="fs-16px text-body text-opacity-50">
-              2:22 AI provides an integrated environment supporting the full
-              digital investigation lifecycle.
+              The framework provides an integrated environment supporting the
+              full digital forensic investigation lifecycle.
             </p>
           </div>
 
@@ -132,10 +136,11 @@ export default function Home() {
             {/* CASE MANAGEMENT */}
             <div className="col-lg-3">
               <div className="card p-4 h-100">
-                <h5>Case Management</h5>
+                <h5>Investigation Management</h5>
                 <p>
-                  Structured case workflows with analyst notes, task tracking,
-                  evidence references, and immutable audit logs.
+                  Structured investigation workflows support case tracking,
+                  analyst collaboration, evidence referencing, and immutable
+                  audit logs for coordinated forensic investigations.
                 </p>
 
                 <div className="card-arrow">
@@ -150,10 +155,11 @@ export default function Home() {
             {/* TIMELINE */}
             <div className="col-lg-3">
               <div className="card p-4 h-100">
-                <h5>Timeline Reconstruction</h5>
+                <h5>Event Timeline Reconstruction</h5>
                 <p>
-                  Multi-source forensic timelines across endpoints, logs,
-                  memory artifacts, and network activity.
+                  Automated reconstruction of multi-source forensic timelines
+                  correlates system logs, endpoint artifacts, and network
+                  activity into a unified investigative sequence.
                 </p>
 
                 <div className="card-arrow">
@@ -168,10 +174,11 @@ export default function Home() {
             {/* EVIDENCE */}
             <div className="col-lg-3">
               <div className="card p-4 h-100">
-                <h5>Evidence Vault</h5>
+                <h5>Digital Evidence Repository</h5>
                 <p>
-                  Centralized evidence storage with cryptographic integrity
-                  verification and chain-of-custody tracking.
+                  A centralized evidence repository provides cryptographic
+                  integrity verification, artifact indexing, and
+                  chain-of-custody preservation throughout investigations.
                 </p>
 
                 <div className="card-arrow">
@@ -186,10 +193,12 @@ export default function Home() {
             {/* REPORTING */}
             <div className="col-lg-3">
               <div className="card p-4 h-100">
-                <h5>Automated Reporting</h5>
+                <h5>Forensic Intelligence Reporting</h5>
                 <p>
-                  Generation of technical, executive, and legal-ready reports
-                  directly from validated investigation data.
+                  Automated reporting generates structured investigation
+                  outputs including technical findings, chronological
+                  timelines, and evidence-supported conclusions for
+                  operational, executive, and legal audiences.
                 </p>
 
                 <div className="card-arrow">
