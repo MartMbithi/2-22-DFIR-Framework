@@ -67,7 +67,7 @@ import Nav from '@/components/Nav';
 import Footer from '@/components/Footer';
 
 export const metadata = {
-    title: 'Privacy Policy | DFIR-AI'
+    title: 'Privacy Policy | 2:22 AI'
 };
 
 export default function PrivacyPolicy() {
@@ -82,9 +82,9 @@ export default function PrivacyPolicy() {
                     </h1>
 
                     <p className="text-textMuted mb-6">
-                        DFIR-AI respects your privacy. This Privacy Policy outlines how
+                        2:22 AI respects your privacy. This Privacy Policy outlines how
                         information is collected, used, and protected when using the
-                        DFIR-AI platform and related services.
+                        2:22 AI platform and related services.
                     </p>
 
                     <h2 className="font-semibold text-xl mt-10 mb-3">
@@ -101,7 +101,7 @@ export default function PrivacyPolicy() {
                     </h2>
                     <p className="text-textMuted mb-6">
                         Information is used solely for providing, maintaining, and
-                        improving DFIR-AI services. We do not sell personal data.
+                        improving 2:22 AI services. We do not sell personal data.
                     </p>
 
                     <h2 className="font-semibold text-xl mt-10 mb-3">

@@ -1,6 +1,6 @@
 /*
  *   Crafted On Fri Jan 30 2026
- *   Devlan Solutions LTD — DFIR-AI
+ *   Devlan Solutions LTD — 2:22 AI
  */
 
 'use client';
@@ -26,7 +26,7 @@ export default function AppSidebar() {
                     <div className="menu">
 
                         {/* ================= CORE ================= */}
-                        <div className="menu-header">DFIR Operations</div>
+                        <div className="menu-header">2:22 Operations</div>
 
                         <div className={`menu-item ${isActive('/dashboard') ? 'active' : ''}`}>
                             <Link href="/dashboard" className="menu-link">

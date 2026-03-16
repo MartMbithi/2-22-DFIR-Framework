@@ -2,7 +2,7 @@ import Nav from '../../components/Nav';
 import Footer from '../../components/Footer';
 
 export const metadata = {
-    title: 'Use Cases | DFIR-AI',
+    title: 'Use Cases | 2:22 AI',
 };
 
 export default function UseCasesPage() {
@@ -16,11 +16,11 @@ export default function UseCasesPage() {
                     <div className="row justify-content-center mb-5">
                         <div className="col-xl-10 col-lg-11">
                             <h1 className="display-6 fw-bold mb-3">
-                                DFIR-AI Use Cases
+                                2:22 AI Use Cases
                             </h1>
 
                             <p className="fs-18px text-body text-opacity-75">
-                                DFIR-AI supports real-world digital forensic and incident
+                                2:22 AI supports real-world digital forensic and incident
                                 response investigations conducted by security operations
                                 teams, government agencies, and regulated organizations.
                                 Each use case reflects defensible investigative workflows,

@@ -2,7 +2,7 @@
 
 /*
  *   Crafted On Fri Jan 30 2026
- *   Devlan Solutions LTD — DFIR-AI
+ *   Devlan Solutions LTD — 2:22 AI
  */
 
 import { useEffect, useMemo, useState } from 'react';

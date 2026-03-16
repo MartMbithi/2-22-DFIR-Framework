@@ -76,7 +76,7 @@ export default function Footer() {
 
           {/* Column 1 */}
           <div className="col-lg-4">
-            <h5 className="mb-3">DFIR-AI</h5>
+            <h5 className="mb-3">2:22 AI</h5>
             <p>
               An open-source Digital Forensics and Incident Response platform
               designed for self-hosted deployments, forensic integrity, and
@@ -141,7 +141,7 @@ export default function Footer() {
         <hr className="opacity-4 my-4" />
 
         <div className="text-center small">
-          © 2026 DFIR-AI — Open-Source DFIR Platform
+          © 2026 2:22 2:22 AI — Open-Source DFIR Platform
         </div>
       </div>
     </div>

@@ -2,9 +2,9 @@ import Nav from '@/components/Nav';
 import Footer from '@/components/Footer';
 
 export const metadata = {
-    title: 'Compliance & Trust | DFIR-AI',
+    title: 'Compliance & Trust | 2:22 AI',
     description:
-        'Compliance, security controls, and forensic integrity principles supported by DFIR-AI.',
+        'Compliance, security controls, and forensic integrity principles supported by 2:22 AI.',
 };
 
 export default function Compliance() {
@@ -28,7 +28,7 @@ export default function Compliance() {
                             </h1>
 
                             <p className="fs-18px text-body text-opacity-75">
-                                DFIR-AI is designed to support investigations conducted in
+                                2:22 AI is designed to support investigations conducted in
                                 regulated and high-assurance environments. Security controls,
                                 auditability, and evidentiary integrity are built into the
                                 platform architecture rather than added as afterthoughts.
@@ -44,7 +44,7 @@ export default function Compliance() {
                                 <div className="col-lg-6">
                                     <ComplianceCard
                                         title="ISO/IEC 27001 Alignment"
-                                        desc="DFIR-AI aligns with information security management principles reflected in ISO/IEC 27001, including risk-based controls, access management, auditability, and secure handling of investigative data."
+                                        desc="2:22 AI aligns with information security management principles reflected in ISO/IEC 27001, including risk-based controls, access management, auditability, and secure handling of investigative data."
                                     />
                                 </div>
 
@@ -58,7 +58,7 @@ export default function Compliance() {
                                 <div className="col-lg-6">
                                     <ComplianceCard
                                         title="CJIS-Style Security Controls"
-                                        desc="DFIR-AI implements access restriction, activity auditing, and evidence handling patterns consistent with CJIS-style security expectations, supporting sensitive law enforcement and government investigations."
+                                        desc="2:22 AI implements access restriction, activity auditing, and evidence handling patterns consistent with CJIS-style security expectations, supporting sensitive law enforcement and government investigations."
                                     />
                                 </div>
 
@@ -83,7 +83,7 @@ export default function Compliance() {
                                     </h5>
 
                                     <p className="text-body text-opacity-75 small mb-0">
-                                        DFIR-AI is fully self-hosted and open-source. There is no
+                                        2:22 AI is fully self-hosted and open-source. There is no
                                         vendor telemetry, no external data transmission, and no
                                         opaque processing logic. Organizations retain full control
                                         over investigative data, infrastructure, and analytical

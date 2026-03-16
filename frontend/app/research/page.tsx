@@ -2,7 +2,7 @@ import Nav from '@/components/Nav';
 import Footer from '@/components/Footer';
 
 export const metadata = {
-    title: 'Research | DFIR-AI',
+    title: 'Research | 2:22 AI',
     description:
         'Technical research, methodologies, and insights on digital forensics and incident response.',
 };
@@ -26,7 +26,7 @@ export default function Research() {
                             </h1>
 
                             <p className="fs-18px text-body text-opacity-75">
-                                DFIR-AI research focuses on advancing digital forensics and
+                                2:22 AI research focuses on advancing digital forensics and
                                 incident response through applied machine learning, structured
                                 investigative methodologies, and evidence-centric system design.
                                 The research emphasizes defensibility, transparency, and
@@ -82,7 +82,7 @@ export default function Research() {
                                     </h5>
 
                                     <p className="text-body text-opacity-75 small mb-0">
-                                        DFIR-AI research avoids opaque or autonomous decision-making
+                                        2:22 AI research avoids opaque or autonomous decision-making
                                         systems. All analytical capabilities are designed to augment
                                         — not replace — investigator reasoning. Research outputs
                                         prioritize transparency, reproducibility, and alignment with

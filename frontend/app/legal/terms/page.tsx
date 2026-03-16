@@ -67,7 +67,7 @@ import Nav from '@/components/Nav';
 import Footer from '@/components/Footer';
 
 export const metadata = {
-    title: 'Terms of Service | DFIR-AI'
+    title: 'Terms of Service | 2:22 AI'
 };
 
 export default function TermsOfService() {
@@ -82,7 +82,7 @@ export default function TermsOfService() {
                     </h1>
 
                     <p className="text-textMuted mb-6">
-                        By accessing or using DFIR-AI, you agree to comply with and be
+                        By accessing or using 2:22 AI, you agree to comply with and be
                         bound by these Terms of Service.
                     </p>
 
@@ -90,7 +90,7 @@ export default function TermsOfService() {
                         Use of the Platform
                     </h2>
                     <p className="text-textMuted mb-6">
-                        DFIR-AI may be used only for lawful purposes and in accordance
+                        2:22 AI may be used only for lawful purposes and in accordance
                         with applicable regulations and policies.
                     </p>
 
@@ -98,7 +98,7 @@ export default function TermsOfService() {
                         Intellectual Property
                     </h2>
                     <p className="text-textMuted mb-6">
-                        All content, software, and trademarks associated with DFIR-AI
+                        All content, software, and trademarks associated with 2:22 AI
                         remain the property of their respective owners.
                     </p>
 
@@ -106,7 +106,7 @@ export default function TermsOfService() {
                         Limitation of Liability
                     </h2>
                     <p className="text-textMuted">
-                        DFIR-AI is provided “as is” without warranties of any kind. Use
+                        2:22 AI is provided “as is” without warranties of any kind. Use
                         of the platform is at your own risk.
                     </p>
                 </section>

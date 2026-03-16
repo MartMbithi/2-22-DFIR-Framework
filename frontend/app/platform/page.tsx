@@ -2,7 +2,7 @@ import Nav from '../../components/Nav';
 import Footer from '../../components/Footer';
 
 export const metadata = {
-    title: 'Platform | DFIR-AI',
+    title: 'Platform | 2:22 AI',
 };
 
 export default function Platform() {
@@ -18,10 +18,10 @@ export default function Platform() {
                     {/* HEADER */}
                     <div className="mb-5">
                         <h1 className="display-6 fw-600 mb-3">
-                            DFIR-AI Platform Architecture
+                            2:22 AI Platform Architecture
                         </h1>
                         <p className="fs-18px text-body text-opacity-75">
-                            DFIR-AI is a modular, self-hosted Digital Forensics and Incident
+                            2:22 AI is a modular, self-hosted Digital Forensics and Incident
                             Response platform designed to unify investigation workflows,
                             enforce evidentiary integrity, and accelerate analytical tasks
                             using AI — without compromising analyst control or data ownership.
@@ -36,7 +36,7 @@ export default function Platform() {
                         <div className="col-lg-4">
                             <h4>Forensic Soundness by Design</h4>
                             <p>
-                                Every subsystem within DFIR-AI is built to preserve evidentiary
+                                Every subsystem within 2:22 AI is built to preserve evidentiary
                                 integrity. Artifacts are cryptographically hashed at ingestion,
                                 timestamps are normalized, and all transformations are recorded
                                 to ensure repeatability and admissibility.
@@ -46,7 +46,7 @@ export default function Platform() {
                         <div className="col-lg-4">
                             <h4>Analyst-Controlled Intelligence</h4>
                             <p>
-                                AI within DFIR-AI operates strictly as an analytical assistant.
+                                AI within 2:22 AI operates strictly as an analytical assistant.
                                 It performs correlation, summarization, and hypothesis support,
                                 but never replaces analyst judgement or performs autonomous
                                 decision-making.
@@ -56,7 +56,7 @@ export default function Platform() {
                         <div className="col-lg-4">
                             <h4>Self-Hosted & Auditable</h4>
                             <p>
-                                DFIR-AI runs entirely within the organization’s infrastructure.
+                                2:22 AI runs entirely within the organization’s infrastructure.
                                 There is no vendor telemetry, no data exfiltration, and no hidden
                                 dependencies. The platform is open-source and fully auditable.
                             </p>
@@ -68,7 +68,7 @@ export default function Platform() {
                     <div className="text-center mb-5">
                         <h2 className="mb-3">Core Platform Components</h2>
                         <p className="fs-16px text-body text-opacity-50">
-                            DFIR-AI is composed of tightly integrated modules that support the
+                            2:22 AI is composed of tightly integrated modules that support the
                             complete incident response and forensic investigation lifecycle.
                         </p>
                     </div>
@@ -136,7 +136,7 @@ export default function Platform() {
                                 <div className="card-body p-4">
                                     <h5>Timeline Reconstruction Engine</h5>
                                     <p className="text-body text-opacity-75">
-                                        DFIR-AI reconstructs unified timelines across heterogeneous
+                                        2:22 AI reconstructs unified timelines across heterogeneous
                                         data sources, correlating file system activity, logs,
                                         process execution, and network events.
                                     </p>
@@ -190,7 +190,7 @@ export default function Platform() {
                                 <div className="card-body p-4">
                                     <h5>Reporting & Compliance Outputs</h5>
                                     <p className="text-body text-opacity-75">
-                                        DFIR-AI generates investigation reports directly from
+                                        2:22 AI generates investigation reports directly from
                                         validated evidence and timelines. Reports are structured to
                                         support technical, executive, and legal audiences.
                                     </p>

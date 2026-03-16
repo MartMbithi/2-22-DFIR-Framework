@@ -2,9 +2,9 @@ import Nav from '../../components/Nav';
 import Footer from '../../components/Footer';
 
 export const metadata = {
-    title: 'Self-Hosted Deployment | DFIR-AI',
+    title: 'Self-Hosted Deployment | 2:22 AI',
     description:
-        'Self-hosted deployment guide for DFIR-AI Community Edition. Installation, configuration, and operational setup.',
+        'Self-hosted deployment guide for 2:22 AI Community Edition. Installation, configuration, and operational setup.',
 };
 
 export default function SelfHosted() {
@@ -24,11 +24,11 @@ export default function SelfHosted() {
                     <div className="row justify-content-center mb-5">
                         <div className="col-xl-10 col-lg-11">
                             <h1 className="display-6 fw-bold mb-3">
-                                Self-Hosted DFIR-AI (Community Edition)
+                                Self-Hosted 2:22 AI (Community Edition)
                             </h1>
 
                             <p className="fs-18px text-body text-opacity-75">
-                                DFIR-AI Community Edition is a fully self-hosted, open-source
+                                2:22 AI Community Edition is a fully self-hosted, open-source
                                 Digital Forensics and Incident Response platform. It is designed
                                 for researchers, security teams, and organizations that require
                                 full control over investigative data, infrastructure, and
@@ -54,7 +54,7 @@ export default function SelfHosted() {
                                     </h5>
 
                                     <p className="text-body text-opacity-75 small mb-0">
-                                        DFIR-AI is composed of a FastAPI-based backend, a Next.js
+                                        2:22 AI is composed of a FastAPI-based backend, a Next.js
                                         frontend, and supporting services such as databases and
                                         object storage. Components can be deployed on a single host
                                         for research use or distributed across infrastructure for
@@ -130,7 +130,7 @@ npm run dev`}
                                     </h5>
 
                                     <p className="text-body text-opacity-75 small mb-0">
-                                        DFIR-AI does not enforce infrastructure choices. Operators
+                                        2:22 AI does not enforce infrastructure choices. Operators
                                         are responsible for hardening hosts, securing credentials,
                                         managing backups, and validating compliance with internal
                                         policies and regulatory requirements. The platform is

@@ -27,7 +27,7 @@ export default function Home() {
               </h1>
 
               <p className="fs-18px text-body text-opacity-75 mb-4">
-                DFIR-AI is a self-hosted, open-source Digital Forensics and Incident
+                2:22 AI is a self-hosted, open-source Digital Forensics and Incident
                 Response platform built to support security analysts, incident
                 responders, and investigators conducting evidence-driven
                 investigations in enterprise and regulated environments.
@@ -37,7 +37,7 @@ export default function Home() {
                 The platform augments established DFIR methodologies with
                 AI-assisted correlation, timeline reconstruction, and report
                 generation while preserving forensic integrity, analyst control,
-                and evidentiary admissibility. DFIR-AI does not transmit data
+                and evidentiary admissibility. 2:22 AI does not transmit data
                 externally and operates entirely within the user’s infrastructure,
                 requiring only user-supplied OpenAI API keys.
               </p>
@@ -57,7 +57,7 @@ export default function Home() {
             <div className="col-lg-6 d-none d-lg-block">
               <img
                 src="/assets/img/landing/app_mockup.png"
-                alt="DFIR-AI Investigation Console"
+                alt="2:22 AI Investigation Console"
                 className="w-100 shadow-lg"
               />
             </div>
@@ -74,7 +74,7 @@ export default function Home() {
           <div className="text-center mb-5">
             <h1 className="mb-3">Purpose & Design Philosophy</h1>
             <p className="fs-16px text-body text-opacity-50">
-              DFIR-AI was designed to address limitations in modern incident
+              2:22 AI was designed to address limitations in modern incident
               response tooling: fragmented workflows, excessive manual effort,
               and opaque vendor-controlled platforms.
             </p>
@@ -84,7 +84,7 @@ export default function Home() {
             <div className="col-lg-4">
               <h4>Forensic Soundness</h4>
               <p>
-                Every artifact processed by DFIR-AI is cryptographically hashed,
+                Every artifact processed by 2:22 AI is cryptographically hashed,
                 time-aligned, and traceable throughout its lifecycle. The system
                 enforces handling practices consistent with court-admissible and
                 regulator-ready investigations.
@@ -94,7 +94,7 @@ export default function Home() {
             <div className="col-lg-4">
               <h4>Analyst-Centric AI</h4>
               <p>
-                AI within DFIR-AI operates strictly as an analytical assistant.
+                AI within 2:22 AI operates strictly as an analytical assistant.
                 It accelerates correlation, summarization, and hypothesis
                 generation while leaving interpretation and final judgement
                 entirely to the investigator.
@@ -104,7 +104,7 @@ export default function Home() {
             <div className="col-lg-4">
               <h4>Open & Self-Hosted</h4>
               <p>
-                DFIR-AI is fully self-hosted and open-source. There is no telemetry,
+                2:22 AI is fully self-hosted and open-source. There is no telemetry,
                 no data exfiltration, and no vendor lock-in. Organizations retain
                 full visibility and control over their investigative workflows.
               </p>
@@ -122,7 +122,7 @@ export default function Home() {
           <div className="text-center mb-5">
             <h1 className="mb-3">Core Capabilities</h1>
             <p className="fs-16px text-body text-opacity-50">
-              DFIR-AI provides an integrated environment supporting the full
+              2:22 AI provides an integrated environment supporting the full
               digital investigation lifecycle.
             </p>
           </div>

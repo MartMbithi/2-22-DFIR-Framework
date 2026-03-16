@@ -2,9 +2,9 @@ import Nav from '@/components/Nav';
 import Footer from '@/components/Footer';
 
 export const metadata = {
-    title: 'Documentation | DFIR-AI',
+    title: 'Documentation | 2:22 AI',
     description:
-        'Comprehensive technical documentation for DFIR-AI covering architecture, workflows, security, AI usage, and self-hosted deployment.',
+        'Comprehensive technical documentation for 2:22 AI covering architecture, workflows, security, AI usage, and self-hosted deployment.',
 };
 
 export default function Docs() {
@@ -24,11 +24,11 @@ export default function Docs() {
                     <div className="row justify-content-center mb-5">
                         <div className="col-xl-10 col-lg-11">
                             <h1 className="display-6 fw-bold mb-3">
-                                DFIR-AI Documentation
+                                2:22 AI Documentation
                             </h1>
 
                             <p className="fs-18px text-body text-opacity-75">
-                                This document provides a complete technical overview of DFIR-AI,
+                                This document provides a complete technical overview of 2:22 AI,
                                 an open-source, self-hosted Digital Forensics and Incident Response
                                 platform. It is intended for security analysts, forensic
                                 practitioners, engineers, auditors, and reviewers who require
@@ -44,7 +44,7 @@ export default function Docs() {
                         content={
                             <>
                                 <p>
-                                    DFIR-AI is designed to support evidence-driven digital
+                                    2:22 AI is designed to support evidence-driven digital
                                     investigations conducted in enterprise, government, and
                                     regulated environments. The platform unifies case management,
                                     evidence handling, timeline reconstruction, and report
@@ -52,7 +52,7 @@ export default function Docs() {
                                 </p>
 
                                 <p>
-                                    Unlike opaque or autonomous security platforms, DFIR-AI
+                                    Unlike opaque or autonomous security platforms, 2:22 AI
                                     explicitly preserves analyst control. All analytical outputs
                                     are explainable, traceable to source artifacts, and subject to
                                     investigator validation.
@@ -67,7 +67,7 @@ export default function Docs() {
                         content={
                             <>
                                 <p>
-                                    DFIR-AI follows a modular architecture consisting of a
+                                    2:22 AI follows a modular architecture consisting of a
                                     FastAPI-based backend, a Next.js frontend, and supporting
                                     services such as databases and object storage.
                                 </p>
@@ -93,7 +93,7 @@ export default function Docs() {
                         content={
                             <>
                                 <p>
-                                    Investigations in DFIR-AI follow a structured lifecycle
+                                    Investigations in 2:22 AI follow a structured lifecycle
                                     designed to preserve forensic integrity:
                                 </p>
 
@@ -120,7 +120,7 @@ export default function Docs() {
                             <>
                                 <p>
                                     Evidence is cryptographically hashed at ingestion and tracked
-                                    throughout its lifecycle. DFIR-AI maintains custody metadata
+                                    throughout its lifecycle. 2:22 AI maintains custody metadata
                                     including timestamps, analyst actions, and access history.
                                 </p>
 
@@ -138,7 +138,7 @@ export default function Docs() {
                         content={
                             <>
                                 <p>
-                                    DFIR-AI integrates AI strictly as an analytical assistant.
+                                    2:22 AI integrates AI strictly as an analytical assistant.
                                     Capabilities include summarization, correlation support, and
                                     draft report generation.
                                 </p>
@@ -158,7 +158,7 @@ export default function Docs() {
                         content={
                             <>
                                 <p>
-                                    DFIR-AI is fully self-hosted and open-source. There is no
+                                    2:22 AI is fully self-hosted and open-source. There is no
                                     telemetry, vendor data collection, or hidden processing.
                                 </p>
 
@@ -178,7 +178,7 @@ export default function Docs() {
                         content={
                             <>
                                 <p>
-                                    DFIR-AI Community Edition is deployed by cloning the source
+                                    2:22 AI Community Edition is deployed by cloning the source
                                     repository and running the backend and frontend services.
                                     Operators are responsible for infrastructure hardening,
                                     credential management, and backups.
@@ -198,7 +198,7 @@ export default function Docs() {
                         content={
                             <>
                                 <p>
-                                    DFIR-AI does not perform automated incident response actions,
+                                    2:22 AI does not perform automated incident response actions,
                                     autonomous threat blocking, or unsupervised decision-making.
                                 </p>
 
@@ -217,7 +217,7 @@ export default function Docs() {
                         content={
                             <>
                                 <p>
-                                    DFIR-AI provides a transparent, analyst-controlled platform for
+                                    2:22 AI provides a transparent, analyst-controlled platform for
                                     conducting defensible digital forensic and incident response
                                     investigations. Its design prioritizes integrity, auditability,
                                     and operational trust over automation hype.

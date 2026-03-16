@@ -69,24 +69,24 @@ import './globals.css'; // keep ONLY for resets if needed (no Tailwind)
 
 export const metadata: Metadata = {
   title: {
-    default: 'DFIR-AI | Digital Forensics & Incident Response',
-    template: '%s | DFIR-AI'
+    default: '2:22 AI | Digital Forensics & Incident Response',
+    template: '%s | 2:22 AI'
   },
   description:
     'Enterprise-grade Digital Forensics & Incident Response platform designed for regulated environments.',
-  metadataBase: new URL('https://dfir-ai.dev'),
+  metadataBase: new URL('https://2_22AI.dev'),
   openGraph: {
-    title: 'DFIR-AI',
+    title: '2:22 AI',
     description:
       'AI-powered Digital Forensics & Incident Response for enterprise and government.',
-    url: 'https://dfir-ai.dev',
-    siteName: 'DFIR-AI',
+    url: 'https://2_22AI.dev',
+    siteName: '2:22 AI',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'DFIR-AI Platform'
+        alt: '2:22 AI Platform'
       }
     ],
     locale: 'en_US',
@@ -94,7 +94,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'DFIR-AI',
+    title: '2:22 AI',
     description:
       'AI-powered Digital Forensics & Incident Response platform.',
     images: ['/og-image.png']

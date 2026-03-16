@@ -87,8 +87,8 @@ app.include_router(artifacts_router)
 app.include_router(jobs_progress_router)
 
 app = FastAPI(
-    title="DFIR-AI SaaS Backend",
-    description="Backend API for DFIR-AI forensic automation platform",
+    title="2:22 AI SaaS Backend",
+    description="Backend API for 2:22 AI forensic automation platform",
     version="0.1.0"
 )
 

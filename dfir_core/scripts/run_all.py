@@ -116,9 +116,9 @@ INVESTIGATION_GOAL = (
 
 
 def banner():
-    holo_print("INITIALIZING DFIR-AI CORE ...")
+    holo_print("INITIALIZING 2:22 AI CORE ...")
     holo_print("LINKING DETERMINISTIC + SEMANTIC ENGINES ...")
-    safe_print("  DFIR-AI :: AUTONOMOUS DIGITAL FORENSIC PIPELINE")
+    safe_print("  2:22 AI :: AUTONOMOUS DIGITAL FORENSIC PIPELINE")
     safe_print("  MODE   : HYBRID ANALYSIS")
     safe_print("  STATUS : OPERATIONAL")
 
@@ -314,7 +314,7 @@ def main():
     timing("TOTAL PIPELINE", total_start)
     holo_print("CASE SEALED")
     holo_print("FORENSIC CHAIN INTACT")
-    safe_print("\n[OK] DFIR-AI PIPELINE EXECUTION COMPLETE\n")
+    safe_print("\n[OK] 2:22 AI PIPELINE EXECUTION COMPLETE\n")
 
 
 if __name__ == "__main__":

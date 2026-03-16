@@ -67,11 +67,11 @@
 export default function Head() {
     return (
         <>
-            <title>DFIR-AI | Enterprise Digital Forensics & Incident Response</title>
+            <title>2:22 AI | Enterprise Digital Forensics & Incident Response</title>
 
             <meta
                 name="description"
-                content="DFIR-AI is an enterprise-grade AI-powered Digital Forensics & Incident Response platform for security teams, enterprises, and regulated environments."
+                content="2:22 AI is an enterprise-grade AI-powered Digital Forensics & Incident Response platform for security teams, enterprises, and regulated environments."
             />
 
             <meta
@@ -79,11 +79,11 @@ export default function Head() {
                 content="DFIR, Digital Forensics, Incident Response, Cybersecurity, SOC, Threat Investigation, AI Security"
             />
 
-            <meta name="author" content="DFIR-AI" />
+            <meta name="author" content="2:22 AI" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
 
             {/* Open Graph */}
-            <meta property="og:title" content="DFIR-AI | Enterprise DFIR Platform" />
+            <meta property="og:title" content="2:22 AI | Enterprise DFIR Platform" />
             <meta
                 property="og:description"
                 content="Investigate incidents faster with AI-assisted forensics, immutable audit trails, and compliance-ready workflows."
@@ -92,7 +92,7 @@ export default function Head() {
 
             {/* Twitter */}
             <meta name="twitter:card" content="summary_large_image" />
-            <meta name="twitter:title" content="DFIR-AI" />
+            <meta name="twitter:title" content="2:22 AI" />
             <meta
                 name="twitter:description"
                 content="Mission-critical Digital Forensics & Incident Response platform."
