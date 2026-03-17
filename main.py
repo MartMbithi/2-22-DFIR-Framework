@@ -35,9 +35,11 @@ load_dotenv()
 # PID MANAGEMENT
 ########################################################
 
+
 def save_pids(pids):
     with open(PID_FILE, "w") as f:
         json.dump(pids, f)
+
 
 def load_pids():
     if not PID_FILE.exists():
@@ -45,13 +47,16 @@ def load_pids():
     with open(PID_FILE) as f:
         return json.load(f)
 
+
 def clear_pids():
     if PID_FILE.exists():
         PID_FILE.unlink()
 
+
 ########################################################
 # PROCESS CONTROL
 ########################################################
+
 
 def kill_process(pid):
     try:
@@ -62,6 +67,7 @@ def kill_process(pid):
         console.print(f"[yellow]Stopped PID {pid}[/yellow]")
     except psutil.NoSuchProcess:
         pass
+
 
 def kill_port(port):
     console.print(f"[yellow]Reclaiming port {port}[/yellow]")
@@ -75,15 +81,18 @@ def kill_port(port):
         except:
             pass
 
+
 def port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(("127.0.0.1", port)) == 0
+
 
 def verify_shutdown():
     if port_in_use(API_PORT) or port_in_use(FRONTEND_PORT):
         console.print("[red]⚠ Some services still running[/red]")
     else:
         console.print("[green]✔ Ports fully released[/green]")
+
 
 def stop_services():
     console.print("\n[cyan]Stopping services...[/cyan]")
@@ -103,15 +112,18 @@ def stop_services():
 
     console.print("[green]✔ All services stopped[/green]")
 
+
 ########################################################
 # ENV PREP
 ########################################################
+
 
 def prepare_logs():
     if LOG_DIR.exists():
         shutil.rmtree(LOG_DIR)
     LOG_DIR.mkdir()
     console.print("[green]✔ Logs initialized[/green]")
+
 
 def prepare_python():
     console.print("\n[cyan]Preparing Python environment[/cyan]")
@@ -128,6 +140,7 @@ def prepare_python():
 
     console.print("[green]✔ Python ready[/green]")
 
+
 def prepare_node():
     if not FRONTEND_DIR.exists():
         return
@@ -139,31 +152,38 @@ def prepare_node():
 
     console.print("[green]✔ Frontend ready[/green]")
 
+
 ########################################################
 # HEALTH CHECKS
 ########################################################
 
+
 def verify_database():
-    console.print("\n[cyan]Checking database[/cyan]")
+
+    console.print("\n[cyan]Checking database connectivity[/cyan]")
+
+    host = os.getenv("DB_HOST")
+    user = os.getenv("DB_USER")
+    password = os.getenv("DB_PASSWORD", "")
+    db = os.getenv("DB_NAME")
+    port = os.getenv("DB_PORT")
 
     try:
+
         import sqlalchemy
 
-        url = (
-            f"mysql+pymysql://{os.getenv('DB_USER')}:"
-            f"{os.getenv('DB_PASSWORD','')}@"
-            f"{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/"
-            f"{os.getenv('DB_NAME')}"
-        )
+        url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{db}"
 
         engine = sqlalchemy.create_engine(url)
         engine.connect()
 
-        console.print("[green]✔ DB connected[/green]")
+        console.print("[green]✔ Database connection verified[/green]")
 
     except Exception as e:
-        console.print(f"[red]DB error: {e}[/red]")
+
+        console.print(f"[red]Database error: {e}[/red]")
         sys.exit(1)
+
 
 def verify_openai():
     console.print("\n[cyan]Checking OpenAI[/cyan]")
@@ -177,14 +197,14 @@ def verify_openai():
     import requests
 
     r = requests.get(
-        "https://api.openai.com/v1/models",
-        headers={"Authorization": f"Bearer {key}"}
+        "https://api.openai.com/v1/models", headers={"Authorization": f"Bearer {key}"}
     )
 
     if r.status_code == 200:
         console.print("[green]✔ OpenAI reachable[/green]")
     else:
         console.print("[red]OpenAI failed[/red]")
+
 
 def dfir_self_test():
     console.print("\n[cyan]DFIR diagnostics[/cyan]")
@@ -199,28 +219,35 @@ def dfir_self_test():
     except:
         console.print("[yellow]⚠ DFIR skipped[/yellow]")
 
+
 def ingestion_test():
     upload_dir = ROOT / "data" / "cases"
     upload_dir.mkdir(parents=True, exist_ok=True)
     console.print("[green]✔ Ingestion ready[/green]")
 
+
 ########################################################
 # START SERVICES
 ########################################################
+
 
 def start_backend():
     console.print("\n[cyan]Starting backend[/cyan]")
 
     backend_log = open(LOG_DIR / "backend.log", "w")
 
-    uvicorn = ROOT / "venv" / ("Scripts" if sys.platform == "win32" else "bin") / "uvicorn"
+    uvicorn = (
+        ROOT / "venv" / ("Scripts" if sys.platform == "win32" else "bin") / "uvicorn"
+    )
 
     process = subprocess.Popen(
         [
             str(uvicorn),
             "backend.main:app",
-            "--host", "0.0.0.0",
-            "--port", str(API_PORT),
+            "--host",
+            "0.0.0.0",
+            "--port",
+            str(API_PORT),
         ],
         stdout=backend_log,
         stderr=backend_log,
@@ -230,6 +257,7 @@ def start_backend():
     time.sleep(2)
 
     return process.pid
+
 
 def start_frontend():
     if not FRONTEND_DIR.exists():
@@ -250,9 +278,11 @@ def start_frontend():
 
     return process.pid
 
+
 ########################################################
 # STATUS
 ########################################################
+
 
 def show_status():
     table = Table(title="2:22 DFIR Platform Status")
@@ -268,9 +298,11 @@ def show_status():
     console.print(f"Frontend → {FRONTEND_URL}")
     console.print(f"Logs → {LOG_DIR}")
 
+
 ########################################################
 # BOOT
 ########################################################
+
 
 def boot_sequence():
     console.print(
@@ -287,9 +319,11 @@ def boot_sequence():
             time.sleep(0.01)
             progress.update(task, advance=1)
 
+
 ########################################################
 # CONTROL
 ########################################################
+
 
 def start():
     boot_sequence()
@@ -304,7 +338,6 @@ def start():
     prepare_python()
     prepare_node()
 
-    verify_database()
     verify_openai()
     dfir_self_test()
     ingestion_test()
@@ -312,20 +345,19 @@ def start():
     backend_pid = start_backend()
     frontend_pid = start_frontend()
 
-    save_pids({
-        "backend": backend_pid,
-        "frontend": frontend_pid
-    })
+    save_pids({"backend": backend_pid, "frontend": frontend_pid})
 
     show_status()
 
     console.print("\n[bold green]2:22 DFIR READY[/bold green]\n")
+
 
 def restart():
     console.print("[cyan]Restarting...[/cyan]")
     stop_services()
     time.sleep(1)
     start()
+
 
 def main():
     command = sys.argv[1] if len(sys.argv) > 1 else "start"
@@ -340,6 +372,7 @@ def main():
         show_status()
     else:
         console.print(f"[red]Unknown command: {command}[/red]")
+
 
 if __name__ == "__main__":
     main()
