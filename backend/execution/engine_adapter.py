@@ -70,32 +70,44 @@ import os
 
 def execute_dfir_case(case_id: str):
     """
-    Execute DFIR engine in its native runtime context.
-    Preserves all DFIR core assumptions.
+    Execute DFIR engine in native runtime context.
+    Fully cross-platform (macOS, Linux, Windows).
     """
 
-    # Absolute path to dfir_core/
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
+    # ================= PATH RESOLUTION =================
+
     dfir_core_root = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "dfir_core")
+        os.path.join(BASE_DIR, "..", "..", "dfir_core")
     )
 
-    #  Uploaded files live here
     upload_dir = os.path.abspath(
-        os.path.join("data", "cases", case_id, "uploads")
+        os.path.join(BASE_DIR, "..", "..", "data", "cases", case_id, "uploads")
     )
 
-    # Case Isolations - Have Case Reports Stored Per Case
     case_report_dir = os.path.join(dfir_core_root, "reports", case_id)
     os.makedirs(case_report_dir, exist_ok=True)
 
+    # ================= ENVIRONMENT =================
+
     env = os.environ.copy()
-    env["PYTHONPATH"] = dfir_core_root
+
+    # Preserve existing PYTHONPATH (critical for virtualenvs)
+    existing_path = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = (
+        f"{dfir_core_root}{os.pathsep}{existing_path}"
+        if existing_path
+        else dfir_core_root
+    )
+
+    env["DFIR_INPUT_DIR"] = upload_dir
     env["DFIR_REPORT_DIR"] = case_report_dir
-    env["PYTHONPATH"] = dfir_core_root              # REQUIRED
-    env["DFIR_INPUT_DIR"] = upload_dir              # 🔥 Phase 7.3 key
+
+    # ================= EXECUTION =================
 
     cmd = [
-        sys.executable,
+        sys.executable,   # ✔ cross-platform interpreter
         "-m",
         "scripts.run_all",
         "--case-id",
@@ -104,15 +116,23 @@ def execute_dfir_case(case_id: str):
 
     result = subprocess.run(
         cmd,
-        cwd=dfir_core_root,   # REQUIRED
+        cwd=dfir_core_root,   # ✔ ensures module resolution
         env=env,
         capture_output=True,
         text=True
     )
 
+    # ================= ERROR HANDLING =================
+
     if result.returncode != 0:
         raise RuntimeError(
             "DFIR engine failed\n"
-            f"STDOUT:\n{result.stdout}\n"
+            f"Command: {' '.join(cmd)}\n"
+            f"Working Dir: {dfir_core_root}\n"
+            f"Input Dir: {upload_dir}\n"
+            f"Report Dir: {case_report_dir}\n\n"
+            f"STDOUT:\n{result.stdout}\n\n"
             f"STDERR:\n{result.stderr}"
         )
+
+    return result.stdout

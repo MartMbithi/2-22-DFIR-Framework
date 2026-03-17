@@ -5,6 +5,7 @@ import socket
 import psutil
 import shutil
 import subprocess
+import json
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -12,12 +13,13 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.progress import Progress
-from rich.text import Text
 
 console = Console()
 
 ROOT = Path(__file__).parent
 LOG_DIR = ROOT / "logs_2_22"
+PID_FILE = ROOT / ".pids.json"
+
 BACKEND_DIR = ROOT / "backend"
 FRONTEND_DIR = ROOT / "frontend"
 
@@ -30,48 +32,68 @@ FRONTEND_URL = f"http://127.0.0.1:{FRONTEND_PORT}"
 load_dotenv()
 
 ########################################################
-# BOOT SEQUENCE
+# PID MANAGEMENT
 ########################################################
 
 
-def boot_sequence():
+def save_pids(pids):
+    with open(PID_FILE, "w") as f:
+        json.dump(pids, f)
 
-    console.print(
-        Panel.fit(
-            "[bold cyan]2:22 DFIR FRAMEWORK COMMAND CENTER[/bold cyan]\n"
-            "[dim]Signal → Evidence → Truth[/dim]",
-            border_style="cyan",
-        )
-    )
 
-    with Progress() as progress:
+def load_pids():
+    if not PID_FILE.exists():
+        return {}
+    with open(PID_FILE) as f:
+        return json.load(f)
 
-        task = progress.add_task("[cyan]Booting platform systems...", total=100)
 
-        for i in range(100):
-            time.sleep(0.02)
-            progress.update(task, advance=1)
-
-    console.print("[green]Platform boot sequence complete[/green]\n")
+def clear_pids():
+    if PID_FILE.exists():
+        PID_FILE.unlink()
 
 
 ########################################################
-# LOG SYSTEM
+# PROCESS CONTROL
 ########################################################
 
 
-def prepare_logs():
+def kill_process(pid):
 
-    if LOG_DIR.exists():
-        shutil.rmtree(LOG_DIR)
+    try:
+        proc = psutil.Process(pid)
 
-    LOG_DIR.mkdir()
+        for child in proc.children(recursive=True):
+            child.kill()
 
-    console.print("[green]✔ Runtime logs initialized[/green]")
+        proc.kill()
+
+        console.print(f"[yellow]Stopped PID {pid}[/yellow]")
+
+    except psutil.NoSuchProcess:
+        pass
+
+
+def stop_services():
+
+    console.print("\n[cyan]Stopping services...[/cyan]")
+
+    pids = load_pids()
+
+    if not pids:
+        console.print("[yellow]No running services found[/yellow]")
+        return
+
+    for name, pid in pids.items():
+        kill_process(pid)
+
+    clear_pids()
+
+    console.print("[green]✔ All services stopped[/green]")
 
 
 ########################################################
-# PORT CHECK
+# PORT UTIL
 ########################################################
 
 
@@ -81,165 +103,6 @@ def port_in_use(port):
         return s.connect_ex(("127.0.0.1", port)) == 0
 
 
-def kill_port(port):
-
-    for proc in psutil.process_iter(["pid", "name"]):
-
-        try:
-            for conn in proc.connections():
-
-                if conn.laddr.port == port:
-                    proc.kill()
-                    console.print(f"[yellow]⚡ Reclaimed port {port}[/yellow]")
-
-        except:
-            pass
-
-
-########################################################
-# PYTHON ENVIRONMENT
-########################################################
-
-
-def prepare_python():
-
-    console.print("\n[cyan]Preparing Python environment[/cyan]")
-
-    if not (ROOT / "venv").exists():
-
-        subprocess.run(["python3", "-m", "venv", "venv"])
-
-    pip = ROOT / "venv/bin/pip"
-
-    subprocess.run([str(pip), "install", "--upgrade", "pip"])
-    subprocess.run([str(pip), "install", "-r", "requirements.txt"])
-
-    console.print("[green]✔ Python environment ready[/green]")
-
-
-########################################################
-# NODE ENVIRONMENT
-########################################################
-
-
-def prepare_node():
-
-    if not FRONTEND_DIR.exists():
-        return
-
-    console.print("\n[cyan]Preparing frontend[/cyan]")
-
-    if not (FRONTEND_DIR / "node_modules").exists():
-
-        subprocess.run(["npm", "install"], cwd=FRONTEND_DIR)
-
-    console.print("[green]✔ Frontend dependencies ready[/green]")
-
-
-########################################################
-# DATABASE CHECK
-########################################################
-
-
-def verify_database():
-
-    console.print("\n[cyan]Checking database connectivity[/cyan]")
-
-    host = os.getenv("DB_HOST")
-    user = os.getenv("DB_USER")
-    password = os.getenv("DB_PASSWORD", "")
-    db = os.getenv("DB_NAME")
-    port = os.getenv("DB_PORT")
-
-    try:
-
-        import sqlalchemy
-
-        url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{db}"
-
-        engine = sqlalchemy.create_engine(url)
-        engine.connect()
-
-        console.print("[green]✔ Database connection verified[/green]")
-
-    except Exception as e:
-
-        console.print(f"[red]Database error: {e}[/red]")
-        sys.exit(1)
-
-
-########################################################
-# OPENAI CONNECTIVITY
-########################################################
-
-
-def verify_openai():
-
-    console.print("\n[cyan]Checking OpenAI connectivity[/cyan]")
-
-    key = os.getenv("OPENAI_API_KEY")
-
-    if not key:
-
-        console.print("[yellow]⚠ OpenAI not configured[/yellow]")
-        return
-
-    import requests
-
-    r = requests.get(
-        "https://api.openai.com/v1/models", headers={"Authorization": f"Bearer {key}"}
-    )
-
-    if r.status_code == 200:
-
-        console.print("[green]✔ OpenAI API reachable[/green]")
-
-    else:
-
-        console.print("[red]OpenAI connection failed[/red]")
-
-
-########################################################
-# DFIR SELF TEST
-########################################################
-
-
-def dfir_self_test():
-
-    console.print("\n[cyan]Running DFIR engine diagnostics[/cyan]")
-
-    try:
-
-        subprocess.run(
-            ["python", "dfir_core/scripts/run_all.py", "--dry-run"],
-            stdout=subprocess.DEVNULL,
-        )
-
-        console.print("[green]✔ DFIR pipeline operational[/green]")
-
-    except:
-
-        console.print("[yellow]⚠ DFIR diagnostics skipped[/yellow]")
-
-
-########################################################
-# INGESTION TEST
-########################################################
-
-
-def ingestion_test():
-
-    console.print("\n[cyan]Checking ingestion pipeline[/cyan]")
-
-    upload_dir = ROOT / "uploads"
-
-    if not upload_dir.exists():
-
-        upload_dir.mkdir()
-
-    console.print("[green]✔ Ingestion directory ready[/green]")
-
-
 ########################################################
 # START SERVICES
 ########################################################
@@ -247,15 +110,13 @@ def ingestion_test():
 
 def start_backend():
 
-    console.print("\n[cyan]Starting backend service[/cyan]")
+    console.print("\n[cyan]Starting backend[/cyan]")
 
     backend_log = open(LOG_DIR / "backend.log", "w")
 
-    # locate uvicorn inside virtualenv
-    if sys.platform == "win32":
-        uvicorn_path = ROOT / "venv" / "Scripts" / "uvicorn"
-    else:
-        uvicorn_path = ROOT / "venv" / "bin" / "uvicorn"
+    uvicorn_path = (
+        ROOT / "venv" / ("Scripts" if sys.platform == "win32" else "bin") / "uvicorn"
+    )
 
     process = subprocess.Popen(
         [
@@ -271,7 +132,7 @@ def start_backend():
         cwd=ROOT,
     )
 
-    time.sleep(3)
+    time.sleep(2)
 
     console.print("[green]✔ Backend online[/green]")
 
@@ -283,7 +144,7 @@ def start_frontend():
     if not FRONTEND_DIR.exists():
         return None
 
-    console.print("\n[cyan]Starting frontend interface[/cyan]")
+    console.print("\n[cyan]Starting frontend[/cyan]")
 
     frontend_log = open(LOG_DIR / "frontend.log", "w")
 
@@ -294,7 +155,7 @@ def start_frontend():
         stderr=frontend_log,
     )
 
-    time.sleep(3)
+    time.sleep(2)
 
     console.print("[green]✔ Frontend online[/green]")
 
@@ -302,69 +163,102 @@ def start_frontend():
 
 
 ########################################################
-# TELEMETRY
+# STATUS
 ########################################################
 
 
-def show_status(backend_pid, frontend_pid):
+def show_status():
 
-    table = Table(title="2:22 Platform Status")
+    table = Table(title="2:22 DFIR Platform Status")
 
     table.add_column("Component")
     table.add_column("Status")
 
-    table.add_row("Backend", "ONLINE")
-    table.add_row("Frontend", "ONLINE")
-    table.add_row("Database", "CONNECTED")
-    table.add_row("Ingestion", "READY")
-    table.add_row("DFIR Engine", "READY")
+    table.add_row("Backend", "ONLINE" if port_in_use(API_PORT) else "OFFLINE")
+    table.add_row("Frontend", "ONLINE" if port_in_use(FRONTEND_PORT) else "OFFLINE")
 
     console.print(table)
 
-    console.print("\n[bold cyan]Access Points[/bold cyan]")
-
-    console.print(f"API → {API_URL}/docs")
+    console.print(f"\nAPI → {API_URL}/docs")
     console.print(f"Frontend → {FRONTEND_URL}")
 
-    console.print(f"\nLogs → {LOG_DIR}")
+
+########################################################
+# BOOT
+########################################################
+
+
+def boot_sequence():
+
+    console.print(
+        Panel.fit(
+            "[bold cyan]2:22 DFIR COMMAND CENTER[/bold cyan]\n"
+            "[dim]Signal → Evidence → Truth[/dim]",
+            border_style="cyan",
+        )
+    )
+
+    with Progress() as progress:
+        task = progress.add_task("[cyan]Booting...", total=100)
+        for _ in range(100):
+            time.sleep(0.01)
+            progress.update(task, advance=1)
+
+
+def prepare_logs():
+
+    if LOG_DIR.exists():
+        shutil.rmtree(LOG_DIR)
+
+    LOG_DIR.mkdir()
 
 
 ########################################################
-# MAIN
+# MAIN CONTROL
 ########################################################
+
+
+def start():
+
+    boot_sequence()
+    prepare_logs()
+
+    backend_pid = start_backend()
+    frontend_pid = start_frontend()
+
+    save_pids({"backend": backend_pid, "frontend": frontend_pid})
+
+    show_status()
+
+    console.print("\n[bold green]System Ready[/bold green]\n")
+
+
+def restart():
+
+    console.print("[cyan]Restarting system...[/cyan]")
+    stop_services()
+    time.sleep(1)
+    start()
 
 
 def main():
 
-    boot_sequence()
+    command = sys.argv[1] if len(sys.argv) > 1 else "start"
 
-    prepare_logs()
+    if command == "start":
+        start()
 
-    if port_in_use(API_PORT):
-        kill_port(API_PORT)
+    elif command == "stop":
+        stop_services()
 
-    if port_in_use(FRONTEND_PORT):
-        kill_port(FRONTEND_PORT)
+    elif command == "restart":
+        restart()
 
-    prepare_python()
+    elif command == "status":
+        show_status()
 
-    prepare_node()
-
-    verify_database()
-
-    verify_openai()
-
-    dfir_self_test()
-
-    ingestion_test()
-
-    backend_pid = start_backend()
-
-    frontend_pid = start_frontend()
-
-    show_status(backend_pid, frontend_pid)
-
-    console.print("\n[bold green]2:22 DFIR Framework Ready[/bold green]\n")
+    else:
+        console.print(f"[red]Unknown command: {command}[/red]")
 
 
 if __name__ == "__main__":
