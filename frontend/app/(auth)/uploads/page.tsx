@@ -204,7 +204,7 @@ export default function CasesPage() {
                                                     <td className="text-end">
 
                                                         <Link
-                                                            href={`/cases/${c.case_id}`}
+                                                            href={`/uploads/${c.case_id}`}
                                                             className="btn btn-sm btn-outline-theme"
                                                         >
                                                             Manage Evidence
