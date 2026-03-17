@@ -226,12 +226,12 @@ export default function CasesPage() {
                                                     </td>
 
                                                     <td className="text-end">
-                                                        <Link
+                                                        {/* <Link
                                                             href={`/cases/${c.case_id}`}
                                                             className="btn btn-sm btn-outline-theme me-2"
                                                         >
                                                             View
-                                                        </Link>
+                                                        </Link> */}
 
                                                         <button
                                                             className="btn btn-sm btn-outline-secondary me-2"

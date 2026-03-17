@@ -71,7 +71,7 @@ export default function AppSidebar() {
                                     <i className="bi bi-cloud-upload"></i>
                                 </span>
                                 <span className="menu-text">
-                                    Evidence Uploads
+                                    Evidences
                                 </span>
                             </Link>
                         </div>
