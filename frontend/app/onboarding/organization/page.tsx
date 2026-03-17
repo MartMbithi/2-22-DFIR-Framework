@@ -50,7 +50,7 @@ export default function CreateOrganization() {
                                     </h1>
 
                                     <p className="text-body text-opacity-75 mb-4">
-                                        2:22 AI is designed around organization-scoped investigations.
+                                        2:22  is designed around organization-scoped investigations.
                                         Creating an organization establishes a secure boundary for
                                         cases, evidence, users, and audit trails.
                                     </p>
