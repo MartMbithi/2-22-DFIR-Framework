@@ -101,7 +101,7 @@ export default function AppSidebar() {
                                     <i className="bi bi-cpu"></i>
                                 </span>
                                 <span className="menu-text">
-                                    Analysis Jobs
+                                    2:22 Jobs
                                 </span>
                             </Link>
                         </div>
@@ -112,7 +112,7 @@ export default function AppSidebar() {
                                     <i className="bi bi-file-earmark-text"></i>
                                 </span>
                                 <span className="menu-text">
-                                    Investigation Reports
+                                    2:22 Reports
                                 </span>
                             </Link>
                         </div>
