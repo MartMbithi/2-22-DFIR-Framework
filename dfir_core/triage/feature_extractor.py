@@ -1,90 +1,151 @@
-#
-#   Crafted On Wed Jan 07 2026
-#   From his finger tips, through his IDE to your deployment environment at full throttle with no bugs, loss of data,
-#   fluctuations, signal interference, or doubt—it can only be
-#   the legendary coding wizard, Martin Mbithi (martin@devlan.co.ke, www.martmbithi.github.io)
-#
-#   www.devlan.co.ke
-#   hello@devlan.co.ke
-#
-#
-#   The Devlan Solutions LTD Super Duper User License Agreement
-#   Copyright (c) 2022 Devlan Solutions LTD
-#
-#
-#   1. LICENSE TO BE AWESOME
-#   Congrats, you lucky human! Devlan Solutions LTD hereby bestows upon you the magical,
-#   revocable, personal, non-exclusive, and totally non-transferable right to install this epic system
-#   on not one, but TWO separate computers for your personal, non-commercial shenanigans.
-#   Unless, of course, you've leveled up with a commercial license from Devlan Solutions LTD.
-#   Sharing this software with others or letting them even peek at it? Nope, that's a big no-no.
-#   And don't even think about putting this on a network or letting a crowd join the fun unless you
-#   first scored a multi-user license from us. Sharing is caring, but rules are rules!
-#
-#   2. COPYRIGHT POWER-UP
-#   This Software is the prized possession of Devlan Solutions LTD and is shielded by copyright law
-#   and the forces of international copyright treaties. You better not try to hide or mess with
-#   any of our awesome proprietary notices, labels, or marks. Respect the swag!
-#
-#
-#   3. RESTRICTIONS, NO CHEAT CODES ALLOWED
-#   You may not, and you shall not let anyone else:
-#   (a) reverse engineer, decompile, decode, decrypt, disassemble, or do any sneaky stuff to
-#   figure out the source code of this software;
-#   (b) modify, remix, distribute, or create your own funky version of this masterpiece;
-#   (c) copy (except for that one precious backup), distribute, show off in public, transmit, sell, rent,
-#   lease, or otherwise exploit the Software like it's your own.
-#
-#
-#   4. THE ENDGAME
-#   This License lasts until one of us says 'Game Over'. You can call it quits anytime by
-#   destroying the Software and all the copies you made (no hiding them under your bed).
-#   If you break any of these sacred rules, this License self-destructs, and you must obliterate
-#   every copy of the Software, no questions asked.
-#
-#
-#   5. NO GUARANTEES, JUST PIXELS
-#   DEVLAN SOLUTIONS LTD doesn’t guarantee this Software is flawless—it might have a few
-#   quirks, but who doesn’t? DEVLAN SOLUTIONS LTD washes its hands of any other warranties,
-#   implied or otherwise. That means no promises of perfect performance, marketability, or
-#   non-infringement. Some places have different rules, so you might have extra rights, but don’t
-#   count on us for backup if things go sideways. Use at your own risk, brave adventurer!
-#
-#
-#   6. SEVERABILITY—KEEP THE GOOD STUFF
-#   If any part of this License gets tossed out by a judge, don’t worry—the rest of the agreement
-#   still stands like a boss. Just because one piece fails doesn’t mean the whole thing crumbles.
-#
-#
-#   7. NO DAMAGE, NO DRAMA
-#   Under no circumstances will Devlan Solutions LTD or its squad be held responsible for any wild,
-#   indirect, or accidental chaos that might come from using this software—even if we warned you!
-#   And if you ever think you’ve got a claim, the most you’re getting out of us is the license fee you
-#   paid—if any. No drama, no big payouts, just pixels and code.
-#
-#
+# 2:22 DFIR Framework — Feature Extractor for Triage Scoring
+# Extracts forensic features from artifacts for deterministic scoring
 
-from datetime import datetime
+from datetime import datetime, timezone
+from config import SUSPICIOUS_KEYWORDS
 
 
-def ExtractFeatures(artifact, incident_start=None, incident_end=None):
+def ExtractFeatures(
+    artifact: dict,
+    incident_start: datetime | None = None,
+    incident_end: datetime | None = None,
+) -> dict:
+    """
+    Extract forensic-relevant features from an artifact for triage scoring.
+
+    Features extracted:
+    - Temporal relevance (within incident window)
+    - Keyword severity (high/medium/low suspicious terms)
+    - Artifact type weight
+    - Attack metadata signals
+    - Failure indicators
+    - Sensitive path access
+    - Network indicators
+    """
     features = {}
-
-    # Temporal relevance
-    if incident_start and incident_end and artifact.get("timestamp"):
-        try:
-            features["in_time_window"] = incident_start <= artifact["timestamp"] <= incident_end
-        except Exception:
-            features["in_time_window"] = False
-    else:
-        features["in_time_window"] = False
-
-    # Keyword relevance
-    suspicious_terms = ["powershell", "cmd.exe", "wget", "curl", "mimikatz"]
     content = (artifact.get("content_summary") or "").lower()
-    features["keyword_hit"] = any(term in content for term in suspicious_terms)
+    raw = (artifact.get("raw_content") or "").lower()
+    combined = f"{content} {raw}"
+    metadata = artifact.get("metadata") or {}
+    if isinstance(metadata, str):
+        metadata = {}
 
-    # Artifact type
-    features["artifact_type"] = artifact.get("artifact_type")
+    # ── Temporal Relevance ──────────────────────────────────────
+    features["in_time_window"] = False
+    if incident_start and incident_end:
+        ts = artifact.get("artifact_timestamp")
+        if ts:
+            try:
+                if isinstance(ts, str):
+                    ts = datetime.fromisoformat(ts)
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=timezone.utc)
+                features["in_time_window"] = incident_start <= ts <= incident_end
+            except (ValueError, TypeError):
+                pass
+
+    # ── Keyword Severity Scoring ────────────────────────────────
+    features["keyword_severity"] = "none"
+    features["keyword_hits"] = []
+
+    for severity in ("high", "medium", "low"):
+        for term in SUSPICIOUS_KEYWORDS[severity]:
+            if term in combined:
+                features["keyword_severity"] = severity
+                features["keyword_hits"].append(term)
+                if severity == "high":
+                    break
+        if features["keyword_severity"] == "high":
+            break
+
+    # ── Artifact Type ───────────────────────────────────────────
+    features["artifact_type"] = artifact.get("artifact_type", "unknown")
+
+    # ── Attack Type Signals from Metadata ───────────────────────
+    attack_types = metadata.get("attack_types", [])
+    features["has_attack_classification"] = len(attack_types) > 0
+    features["attack_types"] = attack_types
+
+    # ── Failure / Denial Indicators ─────────────────────────────
+    features["is_failure_event"] = any(
+        kw in combined for kw in [
+            "failed", "failure", "denied", "blocked", "rejected",
+            "unauthorized", "forbidden", "invalid",
+        ]
+    )
+
+    # ── Sensitive Path Access ───────────────────────────────────
+    features["sensitive_path_access"] = metadata.get("sensitive_path_access", False)
+    if not features["sensitive_path_access"]:
+        features["sensitive_path_access"] = any(
+            sp in combined for sp in [
+                "/etc/passwd", "/etc/shadow", ".ssh/", "authorized_keys",
+                "id_rsa", "wp-config", ".env", ".htaccess",
+                "sam", "ntds.dit", "security",
+            ]
+        )
+
+    # ── Network Indicators ──────────────────────────────────────
+    features["suspicious_port"] = metadata.get("suspicious_port", False)
+    features["has_external_ip"] = False
+    indicators = metadata.get("indicators", {})
+    if indicators:
+        ips = indicators.get("source_ips", [])
+        features["has_external_ip"] = any(
+            not ip.startswith(("10.", "172.16.", "172.17.", "172.18.",
+                               "192.168.", "127."))
+            for ip in ips
+        )
+
+    # ── Event Outcome ───────────────────────────────────────────
+    features["event_outcome"] = metadata.get("outcome", "UNKNOWN")
+
+    # ── Repeated Pattern (high volume indicator) ────────────────
+    features["high_volume_indicator"] = False
 
     return features
+
+
+def compute_feature_vector(features: dict) -> dict:
+    """
+    Convert extracted features into a numeric scoring vector.
+    Returns dict of feature_name: float between 0.0 and 1.0.
+    """
+    vector = {}
+
+    # Time window
+    vector["temporal"] = 1.0 if features.get("in_time_window") else 0.0
+
+    # Keyword severity
+    kw_map = {"high": 1.0, "medium": 0.6, "low": 0.3, "none": 0.0}
+    vector["keyword"] = kw_map.get(features.get("keyword_severity", "none"), 0.0)
+
+    # Artifact type weight
+    type_weights = {
+        "web_security_event": 0.9,
+        "auth_event": 0.85,
+        "process_event": 0.95,
+        "network_event": 0.75,
+        "file_event": 0.65,
+        "system_event": 0.55,
+    }
+    vector["type_weight"] = type_weights.get(
+        features.get("artifact_type", "unknown"), 0.4
+    )
+
+    # Attack classification
+    vector["attack_signal"] = 0.8 if features.get("has_attack_classification") else 0.0
+
+    # Failure events (brute force, access denied etc.)
+    vector["failure_signal"] = 0.5 if features.get("is_failure_event") else 0.0
+
+    # Sensitive path access
+    vector["sensitive_access"] = 0.7 if features.get("sensitive_path_access") else 0.0
+
+    # Suspicious port
+    vector["suspicious_port"] = 0.6 if features.get("suspicious_port") else 0.0
+
+    # External IP
+    vector["external_ip"] = 0.3 if features.get("has_external_ip") else 0.0
+
+    return vector

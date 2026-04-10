@@ -1,135 +1,148 @@
-#
-#   Crafted On Wed Jan 07 2026
-#   From his finger tips, through his IDE to your deployment environment at full throttle with no bugs, loss of data,
-#   fluctuations, signal interference, or doubt—it can only be
-#   the legendary coding wizard, Martin Mbithi (martin@devlan.co.ke, www.martmbithi.github.io)
-#   
-#   www.devlan.co.ke
-#   hello@devlan.co.ke
-#
-#
-#   The Devlan Solutions LTD Super Duper User License Agreement
-#   Copyright (c) 2022 Devlan Solutions LTD
-#
-#
-#   1. LICENSE TO BE AWESOME
-#   Congrats, you lucky human! Devlan Solutions LTD hereby bestows upon you the magical,
-#   revocable, personal, non-exclusive, and totally non-transferable right to install this epic system
-#   on not one, but TWO separate computers for your personal, non-commercial shenanigans.
-#   Unless, of course, you've leveled up with a commercial license from Devlan Solutions LTD.
-#   Sharing this software with others or letting them even peek at it? Nope, that's a big no-no.
-#   And don't even think about putting this on a network or letting a crowd join the fun unless you
-#   first scored a multi-user license from us. Sharing is caring, but rules are rules!
-#
-#   2. COPYRIGHT POWER-UP
-#   This Software is the prized possession of Devlan Solutions LTD and is shielded by copyright law
-#   and the forces of international copyright treaties. You better not try to hide or mess with
-#   any of our awesome proprietary notices, labels, or marks. Respect the swag!
-#
-#
-#   3. RESTRICTIONS, NO CHEAT CODES ALLOWED
-#   You may not, and you shall not let anyone else:
-#   (a) reverse engineer, decompile, decode, decrypt, disassemble, or do any sneaky stuff to
-#   figure out the source code of this software;
-#   (b) modify, remix, distribute, or create your own funky version of this masterpiece;
-#   (c) copy (except for that one precious backup), distribute, show off in public, transmit, sell, rent,
-#   lease, or otherwise exploit the Software like it's your own.
-#
-#
-#   4. THE ENDGAME
-#   This License lasts until one of us says 'Game Over'. You can call it quits anytime by
-#   destroying the Software and all the copies you made (no hiding them under your bed).
-#   If you break any of these sacred rules, this License self-destructs, and you must obliterate
-#   every copy of the Software, no questions asked.
-#
-#
-#   5. NO GUARANTEES, JUST PIXELS
-#   DEVLAN SOLUTIONS LTD doesn’t guarantee this Software is flawless—it might have a few
-#   quirks, but who doesn’t? DEVLAN SOLUTIONS LTD washes its hands of any other warranties,
-#   implied or otherwise. That means no promises of perfect performance, marketability, or
-#   non-infringement. Some places have different rules, so you might have extra rights, but don’t
-#   count on us for backup if things go sideways. Use at your own risk, brave adventurer!
-#
-#
-#   6. SEVERABILITY—KEEP THE GOOD STUFF
-#   If any part of this License gets tossed out by a judge, don’t worry—the rest of the agreement
-#   still stands like a boss. Just because one piece fails doesn’t mean the whole thing crumbles.
-#
-#
-#   7. NO DAMAGE, NO DRAMA
-#   Under no circumstances will Devlan Solutions LTD or its squad be held responsible for any wild,
-#   indirect, or accidental chaos that might come from using this software—even if we warned you!
-#   And if you ever think you’ve got a claim, the most you’re getting out of us is the license fee you
-#   paid—if any. No drama, no big payouts, just pixels and code.
-#
-#
+# 2:22 DFIR Framework — Web Attack Detector
+# Detects web application attacks from Apache/Nginx access/error logs and ModSecurity audit logs
 
-import re, uuid
+import re
+import uuid
 from datetime import datetime, timezone
 from .base_detector import BaseDetector
 
-ATTACK_MAP = {
+# ─── Attack Signature Database ──────────────────────────────────────
+ATTACK_SIGNATURES = {
     "SQL_INJECTION": [
-        r"detected sqli",
-        r"libinjection",
-        r"APPLICATION-ATTACK-SQLI"
+        r"(?:union\s+(?:all\s+)?select)", r"(?:;\s*drop\s+table)",
+        r"(?:'\s*or\s+'?\d+\s*=\s*'?\d+)", r"(?:'\s*or\s+'[^']*'\s*=\s*')",
+        r"(?:insert\s+into\s+\w+)", r"(?:update\s+\w+\s+set)",
+        r"(?:delete\s+from\s+\w+)", r"(?:select\s+.*\s+from\s+information_schema)",
+        r"(?:benchmark\s*\(\d+)", r"(?:sleep\s*\(\d+\))",
+        r"(?:waitfor\s+delay)", r"(?:having\s+\d+\s*=\s*\d+)",
+        r"(?:order\s+by\s+\d+)", r"(?:group\s+by\s+\d+)",
+        r"detected\s+sqli", r"libinjection",
+        r"APPLICATION-ATTACK-SQLI",
     ],
     "XSS": [
+        r"<script[^>]*>", r"javascript\s*:", r"onerror\s*=",
+        r"onload\s*=", r"onmouseover\s*=", r"onfocus\s*=",
+        r"alert\s*\(", r"document\.cookie", r"document\.write",
+        r"window\.location", r"eval\s*\(",
         r"APPLICATION-ATTACK-XSS",
-        r"xss attack"
     ],
     "LFI": [
+        r"(?:\.\./){2,}", r"(?:\.\./)+etc/(?:passwd|shadow|hosts)",
+        r"/proc/self/", r"/var/log/",
+        r"(?:php|file|zip|data|expect)://",
+        r"/\.git/", r"sftp-config\.json", r"composer\.json",
+        r"\.env", r"wp-config\.php",
         r"APPLICATION-ATTACK-LFI",
-        r"/\.git/",
-        r"sftp-config\.json",
-        r"composer\.json"
     ],
     "RFI": [
-        r"APPLICATION-ATTACK-RFI"
+        r"(?:https?|ftp)://[^/\s]+/[^/\s]+\.(?:php|asp|jsp|txt)",
+        r"APPLICATION-ATTACK-RFI",
     ],
     "RCE": [
-        r"APPLICATION-ATTACK-RCE"
+        r"(?:;|\||&&)\s*(?:cat|ls|id|whoami|uname|pwd|wget|curl|nc|bash|sh)\b",
+        r"\$\{.*(?:jndi|rmi|ldap|dns).*\}",  # Log4Shell
+        r"(?:system|exec|passthru|shell_exec|popen)\s*\(",
+        r"APPLICATION-ATTACK-RCE",
+    ],
+    "DIRECTORY_TRAVERSAL": [
+        r"(?:\\\.\\\.[\\/]){2,}", r"(?:%2e%2e[%2f/\\\\]){2,}",
+        r"(?:%c0%ae){2,}", r"(?:\.\.[\\/]){3,}",
+    ],
+    "WORDPRESS_ATTACK": [
+        r"xmlrpc\.php", r"wp-login\.php\?action=",
+        r"wp-admin/(?:admin-ajax|setup-config|install)",
+        r"wp-content/(?:uploads|plugins)/.*\.php",
+    ],
+    "WEB_SHELL": [
+        r"(?:c99|r57|wso|b374k|alfa|anon)\.php",
+        r"(?:cmd|shell|backdoor|webshell)\.(?:php|asp|jsp)",
+        r"eval\s*\(\s*(?:base64_decode|gzinflate|gzuncompress|str_rot13)",
     ],
     "PROTOCOL_ABUSE": [
         r"PROTOCOL-ENFORCEMENT",
-        r"Host header is a numeric IP",
-        r"Multiple/Conflicting Connection Header"
+        r"Host\s+header\s+is\s+a\s+numeric\s+IP",
+        r"Multiple/Conflicting\s+Connection\s+Header",
+        r"Transfer-Encoding.*chunked.*chunked",
     ],
     "WAF_CORRELATION": [
-        r"Inbound Anomaly Score Exceeded"
+        r"Inbound\s+Anomaly\s+Score\s+Exceeded",
+        r"Anomaly\s+Score\s+\d+",
     ],
-    "ACCESS_DENIED": [
-        r"AH01797",
-        r"client denied by server configuration"
+    "SCANNER_PROBE": [
+        r"(?:nikto|nmap|masscan|sqlmap|dirb|gobuster|wfuzz|nuclei|burp)",
+        r"(?:acunetix|nessus|openvas|qualys)",
     ],
-    "WORDPRESS_ATTACK": [
-        r"xmlrpc\.php",
-        r"wp-login\.php"
-    ]
 }
 
-IP_PATTERN = r"\b\d{1,3}(?:\.\d{1,3}){3}\b"
+# Compile all patterns
+COMPILED_SIGNATURES = {}
+for attack_type, patterns in ATTACK_SIGNATURES.items():
+    COMPILED_SIGNATURES[attack_type] = [
+        re.compile(p, re.IGNORECASE) for p in patterns
+    ]
+
+# ─── Access-log indicators ──────────────────────────────────────────
+SUSPICIOUS_STATUS_CODES = {400, 401, 403, 404, 405, 500, 502, 503}
+SUSPICIOUS_METHODS = {"CONNECT", "TRACE", "OPTIONS", "PROPFIND", "DELETE", "PUT", "PATCH"}
+IP_PATTERN = re.compile(r"\b(\d{1,3}(?:\.\d{1,3}){3})\b")
+
 
 class WebAttackDetector(BaseDetector):
-    def matches(self, line):
-        return any(
-            re.search(pat, line, re.IGNORECASE)
-            for patterns in ATTACK_MAP.values()
-            for pat in patterns
-        )
+    """Detects web application attacks and suspicious HTTP activity."""
 
-    def parse(self, line, context):
-        attack_type = "UNKNOWN"
-        for name, patterns in ATTACK_MAP.items():
+    def matches(self, line: str) -> bool:
+        lower = line.lower()
+        # Check attack signatures
+        for patterns in COMPILED_SIGNATURES.values():
             for pat in patterns:
-                if re.search(pat, line, re.IGNORECASE):
-                    attack_type = name
-                    break
-            if attack_type != "UNKNOWN":
-                break
+                if pat.search(line):
+                    return True
+        # Check ModSecurity markers
+        if any(kw in lower for kw in ["modsecurity", "owasp_crs", "anomaly score"]):
+            return True
+        # Check suspicious access patterns in parsed access logs
+        if any(kw in lower for kw in [
+            "' or ", "union select", "<script", "../", "etc/passwd",
+            "wp-login", "xmlrpc", "phpmyadmin", "admin-ajax",
+        ]):
+            return True
+        return False
 
-        ip_match = re.search(IP_PATTERN, line)
-        source_ip = ip_match.group(0) if ip_match else "UNKNOWN"
+    def parse(self, line: str, context: dict) -> dict:
+        attack_types = []
+        matched_signatures = []
+
+        for attack_type, patterns in COMPILED_SIGNATURES.items():
+            for pat in patterns:
+                m = pat.search(line)
+                if m:
+                    if attack_type not in attack_types:
+                        attack_types.append(attack_type)
+                    matched_signatures.append(m.group(0)[:100])
+                    break
+
+        primary_attack = attack_types[0] if attack_types else "SUSPICIOUS_REQUEST"
+
+        # Extract source IP
+        ip_match = IP_PATTERN.search(line)
+        source_ip = ip_match.group(1) if ip_match else "UNKNOWN"
+
+        # Extract URI if present
+        uri_match = re.search(r'"(?:GET|POST|PUT|DELETE|HEAD|OPTIONS|PATCH)\s+(\S+)', line)
+        uri = uri_match.group(1) if uri_match else None
+
+        # Extract status code
+        status_match = re.search(r'\s(\d{3})\s', line)
+        status_code = int(status_match.group(1)) if status_match else None
+
+        # Build descriptive summary
+        summary_parts = [f"{primary_attack} detected from {source_ip}"]
+        if uri:
+            summary_parts.append(f"targeting {uri[:120]}")
+        if status_code:
+            summary_parts.append(f"[HTTP {status_code}]")
+        if len(attack_types) > 1:
+            summary_parts.append(f"(also: {', '.join(attack_types[1:])})")
 
         return {
             "artifact_id": str(uuid.uuid4()),
@@ -139,16 +152,20 @@ class WebAttackDetector(BaseDetector):
             "source_file": context["file"],
             "host_id": context["host"],
             "user_context": None,
-            "artifact_timestamp": datetime.now(timezone.utc),
+            "artifact_timestamp": context.get("parsed_timestamp") or datetime.now(timezone.utc),
             "artifact_path": context["file"],
-            "content_summary": f"{attack_type} detected from {source_ip}",
-            "raw_content": line.strip(),
+            "content_summary": " ".join(summary_parts),
+            "raw_content": line.strip()[:2000],
             "md5": None,
             "sha1": None,
             "sha256": None,
             "metadata": {
-                "attack_type": attack_type,
-                "source_ip": source_ip
+                "attack_types": attack_types,
+                "source_ip": source_ip,
+                "target_uri": uri,
+                "status_code": status_code,
+                "matched_signatures": matched_signatures[:10],
+                "detector": self.detector_name,
             },
-            "ingested_at": datetime.now(timezone.utc)
+            "ingested_at": datetime.now(timezone.utc),
         }

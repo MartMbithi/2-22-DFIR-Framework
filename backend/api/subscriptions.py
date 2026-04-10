@@ -1,73 +1,268 @@
-#
-#   Crafted On Sun Jan 11 2026
-#   From his finger tips, through his IDE to your deployment environment at full throttle with no bugs, loss of data,
-#   fluctuations, signal interference, or doubt—it can only be
-#   the legendary coding wizard, Martin Mbithi (martin@devlan.co.ke, www.martmbithi.github.io)
-#   
-#   www.devlan.co.ke
-#   hello@devlan.co.ke
-#
-#
-#   The Devlan Solutions LTD Super Duper User License Agreement
-#   Copyright (c) 2022 Devlan Solutions LTD
-#
-#
-#   1. LICENSE TO BE AWESOME
-#   Congrats, you lucky human! Devlan Solutions LTD hereby bestows upon you the magical,
-#   revocable, personal, non-exclusive, and totally non-transferable right to install this epic system
-#   on not one, but TWO separate computers for your personal, non-commercial shenanigans.
-#   Unless, of course, you've leveled up with a commercial license from Devlan Solutions LTD.
-#   Sharing this software with others or letting them even peek at it? Nope, that's a big no-no.
-#   And don't even think about putting this on a network or letting a crowd join the fun unless you
-#   first scored a multi-user license from us. Sharing is caring, but rules are rules!
-#
-#   2. COPYRIGHT POWER-UP
-#   This Software is the prized possession of Devlan Solutions LTD and is shielded by copyright law
-#   and the forces of international copyright treaties. You better not try to hide or mess with
-#   any of our awesome proprietary notices, labels, or marks. Respect the swag!
-#
-#
-#   3. RESTRICTIONS, NO CHEAT CODES ALLOWED
-#   You may not, and you shall not let anyone else:
-#   (a) reverse engineer, decompile, decode, decrypt, disassemble, or do any sneaky stuff to
-#   figure out the source code of this software;
-#   (b) modify, remix, distribute, or create your own funky version of this masterpiece;
-#   (c) copy (except for that one precious backup), distribute, show off in public, transmit, sell, rent,
-#   lease, or otherwise exploit the Software like it's your own.
-#
-#
-#   4. THE ENDGAME
-#   This License lasts until one of us says 'Game Over'. You can call it quits anytime by
-#   destroying the Software and all the copies you made (no hiding them under your bed).
-#   If you break any of these sacred rules, this License self-destructs, and you must obliterate
-#   every copy of the Software, no questions asked.
-#
-#
-#   5. NO GUARANTEES, JUST PIXELS
-#   DEVLAN SOLUTIONS LTD doesn’t guarantee this Software is flawless—it might have a few
-#   quirks, but who doesn’t? DEVLAN SOLUTIONS LTD washes its hands of any other warranties,
-#   implied or otherwise. That means no promises of perfect performance, marketability, or
-#   non-infringement. Some places have different rules, so you might have extra rights, but don’t
-#   count on us for backup if things go sideways. Use at your own risk, brave adventurer!
-#
-#
-#   6. SEVERABILITY—KEEP THE GOOD STUFF
-#   If any part of this License gets tossed out by a judge, don’t worry—the rest of the agreement
-#   still stands like a boss. Just because one piece fails doesn’t mean the whole thing crumbles.
-#
-#
-#   7. NO DAMAGE, NO DRAMA
-#   Under no circumstances will Devlan Solutions LTD or its squad be held responsible for any wild,
-#   indirect, or accidental chaos that might come from using this software—even if we warned you!
-#   And if you ever think you’ve got a claim, the most you’re getting out of us is the license fee you
-#   paid—if any. No drama, no big payouts, just pixels and code.
-#
-#
+# 2:22 DFIR Framework — Subscriptions & Payments API
+import uuid
+from datetime import datetime, timezone
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.orm import Session
+from backend.db import get_db
+from backend.models import User, Organization, Plan, Subscription, Payment
+from backend.deps import get_current_user, require_organization
+from backend.schemas import (
+    PlanResponse, SubscriptionResponse, InitiatePaymentRequest,
+    PaystackInitResponse, PaymentResponse,
+)
+from backend.services import paystack
 
-from fastapi import APIRouter
+router = APIRouter(prefix="/subscriptions", tags=["Subscriptions"])
 
-router = APIRouter()
 
-@router.get("/plans")
-def list_plans():
-    return {"plans": ["free", "pro", "enterprise"]}
+# ─── Plans ──────────────────────────────────────────────────────────
+
+@router.get("/plans", response_model=list[PlanResponse])
+def list_plans(db: Session = Depends(get_db)):
+    """List all available subscription plans."""
+    return db.query(Plan).filter(Plan.plan_active == True).all()
+
+
+# ─── Current Subscription ──────────────────────────────────────────
+
+@router.get("/current", response_model=SubscriptionResponse | None)
+def get_current_subscription(
+    user_org: tuple = Depends(require_organization),
+    db: Session = Depends(get_db),
+):
+    """Get the current active subscription for the organization."""
+    _, org = user_org
+    sub = (
+        db.query(Subscription)
+        .filter(
+            Subscription.organization_id == org.organization_id,
+            Subscription.subscription_status == "active",
+        )
+        .order_by(Subscription.subscription_started_at.desc())
+        .first()
+    )
+    if not sub:
+        return None
+    return sub
+
+
+@router.get("/history", response_model=list[SubscriptionResponse])
+def subscription_history(
+    user_org: tuple = Depends(require_organization),
+    db: Session = Depends(get_db),
+):
+    """Get subscription history for the organization."""
+    _, org = user_org
+    return (
+        db.query(Subscription)
+        .filter(Subscription.organization_id == org.organization_id)
+        .order_by(Subscription.subscription_started_at.desc())
+        .all()
+    )
+
+
+# ─── Payment Initiation ────────────────────────────────────────────
+
+@router.post("/pay", response_model=PaystackInitResponse)
+def initiate_payment(
+    payload: InitiatePaymentRequest,
+    user: User = Depends(get_current_user),
+    user_org: tuple = Depends(require_organization),
+    db: Session = Depends(get_db),
+):
+    """
+    Initialize a Paystack payment transaction for a plan.
+    Returns an authorization URL to redirect the user to Paystack checkout.
+    """
+    _, org = user_org
+
+    plan = db.query(Plan).filter(
+        Plan.plan_id == payload.plan_id,
+        Plan.plan_active == True,
+    ).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    reference = f"dfir_{org.organization_id[:8]}_{uuid.uuid4().hex[:12]}"
+
+    # Create payment record
+    payment = paystack.create_payment_record(
+        db=db,
+        organization_id=org.organization_id,
+        plan=plan,
+        reference=reference,
+    )
+
+    # Initialize Paystack transaction
+    result = paystack.initialize_transaction(
+        email=user.user_email,
+        amount_kes=float(plan.plan_price),
+        reference=reference,
+        callback_url=payload.callback_url,
+        metadata={
+            "organization_id": org.organization_id,
+            "plan_id": plan.plan_id,
+            "payment_id": payment.payment_id,
+            "plan_name": plan.plan_name,
+        },
+    )
+
+    if not result.get("status"):
+        raise HTTPException(
+            status_code=502,
+            detail=f"Payment gateway error: {result.get('message', 'Unknown error')}",
+        )
+
+    data = result["data"]
+    return PaystackInitResponse(
+        authorization_url=data["authorization_url"],
+        access_code=data["access_code"],
+        reference=data["reference"],
+    )
+
+
+# ─── Payment Verification ──────────────────────────────────────────
+
+@router.get("/verify/{reference}")
+def verify_payment(
+    reference: str,
+    user_org: tuple = Depends(require_organization),
+    db: Session = Depends(get_db),
+):
+    """
+    Verify a Paystack payment and activate the subscription if successful.
+    Called after Paystack redirects back to the application.
+    """
+    _, org = user_org
+
+    # Find payment record
+    payment = (
+        db.query(Payment)
+        .filter(
+            Payment.gateway_reference == reference,
+            Payment.organization_id == org.organization_id,
+        )
+        .first()
+    )
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment record not found")
+
+    if payment.payment_status == "success":
+        # Already verified
+        sub = (
+            db.query(Subscription)
+            .filter(Subscription.payment_reference == reference)
+            .first()
+        )
+        return {
+            "status": "already_verified",
+            "payment_status": "success",
+            "subscription_id": sub.subscription_id if sub else None,
+        }
+
+    # Verify with Paystack
+    result = paystack.verify_transaction(reference)
+    if not result.get("status"):
+        raise HTTPException(
+            status_code=502,
+            detail=f"Verification failed: {result.get('message', 'Unknown')}",
+        )
+
+    txn_data = result.get("data", {})
+    txn_status = txn_data.get("status", "")
+
+    if txn_status != "success":
+        payment.payment_status = "failed"
+        db.commit()
+        return {"status": "failed", "payment_status": "failed", "gateway_status": txn_status}
+
+    # Find the plan from payment metadata or DB
+    # Look up the plan from the pending subscription info
+    plan = None
+    meta = txn_data.get("metadata", {})
+    plan_id = meta.get("plan_id")
+    if plan_id:
+        plan = db.query(Plan).filter(Plan.plan_id == plan_id).first()
+
+    if not plan:
+        # Fallback: find from payment amount
+        payment.payment_status = "success"
+        payment.payment_completed_at = datetime.now(timezone.utc)
+        db.commit()
+        return {"status": "success", "payment_status": "success", "subscription_id": None}
+
+    # Activate subscription
+    sub = paystack.activate_subscription(
+        db=db,
+        organization_id=org.organization_id,
+        plan=plan,
+        payment=payment,
+    )
+
+    return {
+        "status": "success",
+        "payment_status": "success",
+        "subscription_id": sub.subscription_id,
+        "plan_name": plan.plan_name,
+        "expires_at": sub.subscription_expires_at.isoformat(),
+    }
+
+
+# ─── Paystack Webhook ──────────────────────────────────────────────
+
+@router.post("/webhook/paystack")
+async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
+    """
+    Handle Paystack webhook events (charge.success, etc.).
+    This endpoint should be configured in Paystack dashboard.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    event = body.get("event", "")
+    data = body.get("data", {})
+
+    if event == "charge.success":
+        reference = data.get("reference")
+        if not reference:
+            return {"status": "ignored"}
+
+        payment = (
+            db.query(Payment)
+            .filter(Payment.gateway_reference == reference)
+            .first()
+        )
+        if not payment or payment.payment_status == "success":
+            return {"status": "already_processed"}
+
+        meta = data.get("metadata", {})
+        plan_id = meta.get("plan_id")
+        plan = db.query(Plan).filter(Plan.plan_id == plan_id).first() if plan_id else None
+
+        if plan:
+            paystack.activate_subscription(
+                db=db,
+                organization_id=payment.organization_id,
+                plan=plan,
+                payment=payment,
+            )
+
+    return {"status": "received"}
+
+
+# ─── Payment History ───────────────────────────────────────────────
+
+@router.get("/payments", response_model=list[PaymentResponse])
+def payment_history(
+    user_org: tuple = Depends(require_organization),
+    db: Session = Depends(get_db),
+):
+    _, org = user_org
+    return (
+        db.query(Payment)
+        .filter(Payment.organization_id == org.organization_id)
+        .order_by(Payment.payment_created_at.desc())
+        .all()
+    )

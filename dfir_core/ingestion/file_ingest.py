@@ -1,126 +1,173 @@
-#
-#   Crafted On Wed Jan 07 2026
-#   From his finger tips, through his IDE to your deployment environment at full throttle with no bugs, loss of data,
-#   fluctuations, signal interference, or doubt—it can only be
-#   the legendary coding wizard, Martin Mbithi (martin@devlan.co.ke, www.martmbithi.github.io)
-#
-#   www.devlan.co.ke
-#   hello@devlan.co.ke
-#
-#
-#   The Devlan Solutions LTD Super Duper User License Agreement
-#   Copyright (c) 2022 Devlan Solutions LTD
-#
-#
-#   1. LICENSE TO BE AWESOME
-#   Congrats, you lucky human! Devlan Solutions LTD hereby bestows upon you the magical,
-#   revocable, personal, non-exclusive, and totally non-transferable right to install this epic system
-#   on not one, but TWO separate computers for your personal, non-commercial shenanigans.
-#   Unless, of course, you've leveled up with a commercial license from Devlan Solutions LTD.
-#   Sharing this software with others or letting them even peek at it? Nope, that's a big no-no.
-#   And don't even think about putting this on a network or letting a crowd join the fun unless you
-#   first scored a multi-user license from us. Sharing is caring, but rules are rules!
-#
-#   2. COPYRIGHT POWER-UP
-#   This Software is the prized possession of Devlan Solutions LTD and is shielded by copyright law
-#   and the forces of international copyright treaties. You better not try to hide or mess with
-#   any of our awesome proprietary notices, labels, or marks. Respect the swag!
-#
-#
-#   3. RESTRICTIONS, NO CHEAT CODES ALLOWED
-#   You may not, and you shall not let anyone else:
-#   (a) reverse engineer, decompile, decode, decrypt, disassemble, or do any sneaky stuff to
-#   figure out the source code of this software;
-#   (b) modify, remix, distribute, or create your own funky version of this masterpiece;
-#   (c) copy (except for that one precious backup), distribute, show off in public, transmit, sell, rent,
-#   lease, or otherwise exploit the Software like it's your own.
-#
-#
-#   4. THE ENDGAME
-#   This License lasts until one of us says 'Game Over'. You can call it quits anytime by
-#   destroying the Software and all the copies you made (no hiding them under your bed).
-#   If you break any of these sacred rules, this License self-destructs, and you must obliterate
-#   every copy of the Software, no questions asked.
-#
-#
-#   5. NO GUARANTEES, JUST PIXELS
-#   DEVLAN SOLUTIONS LTD doesn’t guarantee this Software is flawless—it might have a few
-#   quirks, but who doesn’t? DEVLAN SOLUTIONS LTD washes its hands of any other warranties,
-#   implied or otherwise. That means no promises of perfect performance, marketability, or
-#   non-infringement. Some places have different rules, so you might have extra rights, but don’t
-#   count on us for backup if things go sideways. Use at your own risk, brave adventurer!
-#
-#
-#   6. SEVERABILITY—KEEP THE GOOD STUFF
-#   If any part of this License gets tossed out by a judge, don’t worry—the rest of the agreement
-#   still stands like a boss. Just because one piece fails doesn’t mean the whole thing crumbles.
-#
-#
-#   7. NO DAMAGE, NO DRAMA
-#   Under no circumstances will Devlan Solutions LTD or its squad be held responsible for any wild,
-#   indirect, or accidental chaos that might come from using this software—even if we warned you!
-#   And if you ever think you’ve got a claim, the most you’re getting out of us is the license fee you
-#   paid—if any. No drama, no big payouts, just pixels and code.
-#
-#
+# 2:22 DFIR Framework — File Ingestion Engine
+# Discovers, parses, and classifies raw forensic artifacts from log files
+# Maintains evidence integrity through SHA-256 content hashing
+
+import hashlib
 import os
 import socket
+from datetime import datetime, timezone
+from typing import Callable
+
 from ingestion.detectors.web_attack_detector import WebAttackDetector
 from ingestion.detectors.auth_detector import AuthDetector
 from ingestion.detectors.network_detector import NetworkDetector
 from ingestion.detectors.system_detector import SystemDetector
 from ingestion.detectors.process_detector import ProcessDetector
 from ingestion.detectors.file_detector import FileDetector
+from ingestion.parsers.log_parsers import detect_and_parse, parse_any_timestamp
 
 # Default fallback (CLI / legacy mode)
 DEFAULT_RAW_DIR = "data/raw"
 
+# Detector priority order — more specific detectors first
 DETECTORS = [
     WebAttackDetector(),
     AuthDetector(),
-    NetworkDetector(),
-    SystemDetector(),
     ProcessDetector(),
-    FileDetector()
+    NetworkDetector(),
+    FileDetector(),
+    SystemDetector(),  # Most generic — last
 ]
 
+SUPPORTED_EXTENSIONS = (".log", ".txt", ".json", ".csv", ".audit", ".evtx.txt")
 
-def DiscoverAndParseRawFiles(case_id="AUTOCASE"):
+
+def _compute_file_hash(filepath: str) -> str:
+    """Compute SHA-256 hash of a file for evidence integrity verification."""
+    h = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _count_lines(filepath: str) -> int:
+    """Count lines in a file for progress tracking."""
+    count = 0
+    with open(filepath, "r", errors="ignore") as f:
+        for _ in f:
+            count += 1
+    return count
+
+
+def DiscoverAndParseRawFiles(
+    case_id: str = "AUTOCASE",
+    progress_callback: Callable | None = None,
+) -> tuple[list[dict], dict]:
+    """
+    Scan the input directory for log files, parse each line through
+    the detector chain, and return (artifacts, evidence_manifest).
+
+    The evidence_manifest tracks file hashes for chain-of-custody integrity.
+
+    Args:
+        case_id: The forensic case identifier
+        progress_callback: Optional fn(stage, percent, message) for SaaS progress
+
+    Returns:
+        Tuple of (artifacts_list, evidence_manifest_dict)
+    """
     artifacts = []
+    evidence_manifest = {
+        "case_id": case_id,
+        "ingestion_started_at": datetime.now(timezone.utc).isoformat(),
+        "files_processed": [],
+        "total_lines_scanned": 0,
+        "total_artifacts_extracted": 0,
+        "host": socket.gethostname(),
+    }
 
     raw_dir = os.getenv("DFIR_INPUT_DIR", DEFAULT_RAW_DIR)
 
     if not os.path.isdir(raw_dir):
-        print(f"Raw data directory not found: {raw_dir}")
-        return artifacts
+        print(f"[WARN] Raw data directory not found: {raw_dir}")
+        return artifacts, evidence_manifest
 
+    # Discover all log files
+    log_files = []
     for root, _, files in os.walk(raw_dir):
-        for fname in files:
-            if not fname.lower().endswith((".log", ".txt", ".json")):
-                continue
+        for fname in sorted(files):
+            if fname.lower().endswith(SUPPORTED_EXTENSIONS):
+                log_files.append(os.path.join(root, fname))
 
-            path = os.path.join(root, fname)
-            print(f"Scanning {path}")
+    if not log_files:
+        print(f"[WARN] No supported log files found in {raw_dir}")
+        return artifacts, evidence_manifest
 
-            try:
-                with open(path, "r", errors="ignore") as f:
-                    for line in f:
-                        if not line.strip():
-                            continue
+    total_files = len(log_files)
 
-                        context = {
-                            "case_id": case_id,
-                            "file": path,
-                            "host": socket.gethostname(),
-                        }
+    for file_idx, filepath in enumerate(log_files):
+        file_record = {
+            "path": filepath,
+            "filename": os.path.basename(filepath),
+            "size_bytes": os.path.getsize(filepath),
+            "sha256": _compute_file_hash(filepath),
+            "lines_scanned": 0,
+            "artifacts_extracted": 0,
+        }
 
-                        for detector in DETECTORS:
-                            if detector.matches(line):
-                                artifact = detector.parse(line, context)
-                                artifacts.append(artifact)
+        if progress_callback:
+            pct = int((file_idx / total_files) * 100)
+            progress_callback(
+                "ingestion", pct,
+                f"Scanning {os.path.basename(filepath)} ({file_idx+1}/{total_files})"
+            )
+
+        try:
+            line_count = 0
+            with open(filepath, "r", errors="ignore") as f:
+                for line_number, line in enumerate(f, start=1):
+                    stripped = line.strip()
+                    if not stripped:
+                        continue
+                    line_count += 1
+
+                    # Try structured parsing for timestamp extraction
+                    parsed = detect_and_parse(stripped)
+                    parsed_ts = None
+                    if parsed:
+                        parsed_ts = (
+                            parsed.get("timestamp")
+                            or parsed.get("_parsed_timestamp")
+                        )
+
+                    context = {
+                        "case_id": case_id,
+                        "file": filepath,
+                        "host": socket.gethostname(),
+                        "line_number": line_number,
+                        "parsed_timestamp": parsed_ts,
+                        "parsed_data": parsed,
+                    }
+
+                    # Run through detector chain
+                    for detector in DETECTORS:
+                        try:
+                            if detector.matches(stripped):
+                                artifact = detector.parse(stripped, context)
+                                if artifact:
+                                    artifacts.append(artifact)
+                                    file_record["artifacts_extracted"] += 1
                                 break
+                        except Exception as det_err:
+                            print(
+                                f"[WARN] Detector {detector.detector_name} "
+                                f"error on {filepath}:{line_number}: {det_err}"
+                            )
 
-            except Exception as e:
-                print(f"Failed reading {path}: {e}")
+            file_record["lines_scanned"] = line_count
+            evidence_manifest["total_lines_scanned"] += line_count
 
-    return artifacts
+        except Exception as e:
+            print(f"[ERROR] Failed reading {filepath}: {e}")
+            file_record["error"] = str(e)
+
+        evidence_manifest["files_processed"].append(file_record)
+
+    evidence_manifest["total_artifacts_extracted"] = len(artifacts)
+    evidence_manifest["ingestion_completed_at"] = datetime.now(timezone.utc).isoformat()
+
+    if progress_callback:
+        progress_callback("ingestion", 100, "Ingestion complete")
+
+    return artifacts, evidence_manifest

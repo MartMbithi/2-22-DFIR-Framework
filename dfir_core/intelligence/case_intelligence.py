@@ -1,76 +1,116 @@
-#
-#   Crafted On Wed Jan 07 2026
-#   From his finger tips, through his IDE to your deployment environment at full throttle with no bugs, loss of data,
-#   fluctuations, signal interference, or doubt—it can only be
-#   the legendary coding wizard, Martin Mbithi (martin@devlan.co.ke, www.martmbithi.github.io)
-#   
-#   www.devlan.co.ke
-#   hello@devlan.co.ke
-#
-#
-#   The Devlan Solutions LTD Super Duper User License Agreement
-#   Copyright (c) 2022 Devlan Solutions LTD
-#
-#
-#   1. LICENSE TO BE AWESOME
-#   Congrats, you lucky human! Devlan Solutions LTD hereby bestows upon you the magical,
-#   revocable, personal, non-exclusive, and totally non-transferable right to install this epic system
-#   on not one, but TWO separate computers for your personal, non-commercial shenanigans.
-#   Unless, of course, you've leveled up with a commercial license from Devlan Solutions LTD.
-#   Sharing this software with others or letting them even peek at it? Nope, that's a big no-no.
-#   And don't even think about putting this on a network or letting a crowd join the fun unless you
-#   first scored a multi-user license from us. Sharing is caring, but rules are rules!
-#
-#   2. COPYRIGHT POWER-UP
-#   This Software is the prized possession of Devlan Solutions LTD and is shielded by copyright law
-#   and the forces of international copyright treaties. You better not try to hide or mess with
-#   any of our awesome proprietary notices, labels, or marks. Respect the swag!
-#
-#
-#   3. RESTRICTIONS, NO CHEAT CODES ALLOWED
-#   You may not, and you shall not let anyone else:
-#   (a) reverse engineer, decompile, decode, decrypt, disassemble, or do any sneaky stuff to
-#   figure out the source code of this software;
-#   (b) modify, remix, distribute, or create your own funky version of this masterpiece;
-#   (c) copy (except for that one precious backup), distribute, show off in public, transmit, sell, rent,
-#   lease, or otherwise exploit the Software like it's your own.
-#
-#
-#   4. THE ENDGAME
-#   This License lasts until one of us says 'Game Over'. You can call it quits anytime by
-#   destroying the Software and all the copies you made (no hiding them under your bed).
-#   If you break any of these sacred rules, this License self-destructs, and you must obliterate
-#   every copy of the Software, no questions asked.
-#
-#
-#   5. NO GUARANTEES, JUST PIXELS
-#   DEVLAN SOLUTIONS LTD doesn’t guarantee this Software is flawless—it might have a few
-#   quirks, but who doesn’t? DEVLAN SOLUTIONS LTD washes its hands of any other warranties,
-#   implied or otherwise. That means no promises of perfect performance, marketability, or
-#   non-infringement. Some places have different rules, so you might have extra rights, but don’t
-#   count on us for backup if things go sideways. Use at your own risk, brave adventurer!
-#
-#
-#   6. SEVERABILITY—KEEP THE GOOD STUFF
-#   If any part of this License gets tossed out by a judge, don’t worry—the rest of the agreement
-#   still stands like a boss. Just because one piece fails doesn’t mean the whole thing crumbles.
-#
-#
-#   7. NO DAMAGE, NO DRAMA
-#   Under no circumstances will Devlan Solutions LTD or its squad be held responsible for any wild,
-#   indirect, or accidental chaos that might come from using this software—even if we warned you!
-#   And if you ever think you’ve got a claim, the most you’re getting out of us is the license fee you
-#   paid—if any. No drama, no big payouts, just pixels and code.
-#
-#
+# 2:22 DFIR Framework — Case Intelligence Aggregator
+# Combines attack channel classification, MITRE mapping, kill chain analysis,
+# and behavioral fingerprinting into a unified intelligence report
 
-from intelligence.attack_channel_classifier import classify_attack_channels, classify_channel_evidence
+from collections import Counter
+from intelligence.attack_channel_classifier import (
+    classify_attack_channels,
+    classify_channel_evidence,
+    map_artifacts_to_mitre,
+    map_to_kill_chain,
+    compute_tactic_distribution,
+)
 from intelligence.behavioral_fingerprinting import behavioral_fingerprint
+from config import classify_severity, MITRE_ATTACK_DB
 
-def generate_case_intelligence(case_id, triaged):
+
+def generate_case_intelligence(case_id: str, triaged: list[dict]) -> dict:
+    """
+    Generate comprehensive case intelligence from triaged artifacts.
+
+    Returns a structured intelligence report containing:
+    - Attack channel classification
+    - MITRE ATT&CK technique mappings
+    - Cyber Kill Chain phase analysis
+    - Tactic distribution
+    - Behavioral fingerprint
+    - Severity distribution
+    - Source IP analysis
+    - Timeline summary
+    """
+    # ── Attack Channels ─────────────────────────────────────────
+    channels = classify_attack_channels(triaged)
+    channel_evidence = classify_channel_evidence(triaged)
+
+    # ── MITRE ATT&CK Mapping ───────────────────────────────────
+    mitre_mappings = map_artifacts_to_mitre(triaged)
+    kill_chain = map_to_kill_chain(mitre_mappings)
+    tactic_distribution = compute_tactic_distribution(mitre_mappings)
+
+    # ── Behavioral Fingerprint ──────────────────────────────────
+    fingerprint = behavioral_fingerprint(triaged)
+
+    # ── Severity Distribution ───────────────────────────────────
+    severity_dist = Counter()
+    for a in triaged:
+        score = a.get("final_score", a.get("triage_score", 0))
+        severity_dist[classify_severity(score)] += 1
+
+    # ── Source IP Analysis ──────────────────────────────────────
+    ip_counter = Counter()
+    ip_attack_map = {}
+    for a in triaged:
+        meta = a.get("metadata") or {}
+        ip = meta.get("source_ip")
+        if ip and ip != "UNKNOWN":
+            ip_counter[ip] += 1
+            if ip not in ip_attack_map:
+                ip_attack_map[ip] = set()
+            for at in meta.get("attack_types", []):
+                ip_attack_map[ip].add(at)
+
+    top_source_ips = []
+    for ip, count in ip_counter.most_common(20):
+        top_source_ips.append({
+            "ip": ip,
+            "event_count": count,
+            "attack_types": sorted(ip_attack_map.get(ip, set())),
+        })
+
+    # ── Timeline Bounds ─────────────────────────────────────────
+    timestamps = []
+    for a in triaged:
+        ts = a.get("artifact_timestamp")
+        if ts:
+            try:
+                if hasattr(ts, "isoformat"):
+                    timestamps.append(ts)
+            except Exception:
+                pass
+
+    timeline = {}
+    if timestamps:
+        sorted_ts = sorted(timestamps)
+        timeline = {
+            "earliest_event": sorted_ts[0].isoformat(),
+            "latest_event": sorted_ts[-1].isoformat(),
+            "span_hours": round(
+                (sorted_ts[-1] - sorted_ts[0]).total_seconds() / 3600, 2
+            ),
+        }
+
+    # ── Overall Threat Level ────────────────────────────────────
+    max_score = max(
+        (a.get("final_score", a.get("triage_score", 0)) for a in triaged),
+        default=0,
+    )
+    overall_severity = classify_severity(max_score)
+
     return {
         "case_id": case_id,
-        "attack_channels": classify_attack_channels(triaged),
-        "channel_evidence": classify_channel_evidence(triaged),
-        "behavioral_fingerprint": behavioral_fingerprint(triaged)
+        "overall_severity": overall_severity,
+        "max_triage_score": round(max_score, 4),
+        "total_artifacts_triaged": len(triaged),
+        "attack_channels": channels,
+        "active_channels": [ch for ch, active in channels.items() if active],
+        "channel_evidence": channel_evidence,
+        "mitre_mappings": mitre_mappings,
+        "mitre_technique_count": len(set(m["technique_id"] for m in mitre_mappings)),
+        "kill_chain_phases": kill_chain,
+        "kill_chain_coverage": len(kill_chain),
+        "tactic_distribution": tactic_distribution,
+        "behavioral_fingerprint": fingerprint,
+        "severity_distribution": dict(severity_dist),
+        "top_source_ips": top_source_ips,
+        "timeline": timeline,
     }

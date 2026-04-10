@@ -1,78 +1,109 @@
-#
-#   Crafted On Wed Jan 07 2026
-#   From his finger tips, through his IDE to your deployment environment at full throttle with no bugs, loss of data,
-#   fluctuations, signal interference, or doubt—it can only be
-#   the legendary coding wizard, Martin Mbithi (martin@devlan.co.ke, www.martmbithi.github.io)
-#   
-#   www.devlan.co.ke
-#   hello@devlan.co.ke
-#
-#
-#   The Devlan Solutions LTD Super Duper User License Agreement
-#   Copyright (c) 2022 Devlan Solutions LTD
-#
-#
-#   1. LICENSE TO BE AWESOME
-#   Congrats, you lucky human! Devlan Solutions LTD hereby bestows upon you the magical,
-#   revocable, personal, non-exclusive, and totally non-transferable right to install this epic system
-#   on not one, but TWO separate computers for your personal, non-commercial shenanigans.
-#   Unless, of course, you've leveled up with a commercial license from Devlan Solutions LTD.
-#   Sharing this software with others or letting them even peek at it? Nope, that's a big no-no.
-#   And don't even think about putting this on a network or letting a crowd join the fun unless you
-#   first scored a multi-user license from us. Sharing is caring, but rules are rules!
-#
-#   2. COPYRIGHT POWER-UP
-#   This Software is the prized possession of Devlan Solutions LTD and is shielded by copyright law
-#   and the forces of international copyright treaties. You better not try to hide or mess with
-#   any of our awesome proprietary notices, labels, or marks. Respect the swag!
-#
-#
-#   3. RESTRICTIONS, NO CHEAT CODES ALLOWED
-#   You may not, and you shall not let anyone else:
-#   (a) reverse engineer, decompile, decode, decrypt, disassemble, or do any sneaky stuff to
-#   figure out the source code of this software;
-#   (b) modify, remix, distribute, or create your own funky version of this masterpiece;
-#   (c) copy (except for that one precious backup), distribute, show off in public, transmit, sell, rent,
-#   lease, or otherwise exploit the Software like it's your own.
-#
-#
-#   4. THE ENDGAME
-#   This License lasts until one of us says 'Game Over'. You can call it quits anytime by
-#   destroying the Software and all the copies you made (no hiding them under your bed).
-#   If you break any of these sacred rules, this License self-destructs, and you must obliterate
-#   every copy of the Software, no questions asked.
-#
-#
-#   5. NO GUARANTEES, JUST PIXELS
-#   DEVLAN SOLUTIONS LTD doesn’t guarantee this Software is flawless—it might have a few
-#   quirks, but who doesn’t? DEVLAN SOLUTIONS LTD washes its hands of any other warranties,
-#   implied or otherwise. That means no promises of perfect performance, marketability, or
-#   non-infringement. Some places have different rules, so you might have extra rights, but don’t
-#   count on us for backup if things go sideways. Use at your own risk, brave adventurer!
-#
-#
-#   6. SEVERABILITY—KEEP THE GOOD STUFF
-#   If any part of this License gets tossed out by a judge, don’t worry—the rest of the agreement
-#   still stands like a boss. Just because one piece fails doesn’t mean the whole thing crumbles.
-#
-#
-#   7. NO DAMAGE, NO DRAMA
-#   Under no circumstances will Devlan Solutions LTD or its squad be held responsible for any wild,
-#   indirect, or accidental chaos that might come from using this software—even if we warned you!
-#   And if you ever think you’ve got a claim, the most you’re getting out of us is the license fee you
-#   paid—if any. No drama, no big payouts, just pixels and code.
-#
-#
+# 2:22 DFIR Framework — Authentication Event Detector
+# Detects authentication-related security events from syslog, auth.log, and access logs
 
-import re, uuid
+import re
+import uuid
 from datetime import datetime, timezone
 from .base_detector import BaseDetector
 
-class AuthDetector(BaseDetector):
-    def matches(self, line):
-        return any(x in line.lower() for x in ["failed password", "accepted password", "sudo", "authentication failure"])
+# ─── Auth Event Patterns ────────────────────────────────────────────
+AUTH_PATTERNS = {
+    "BRUTE_FORCE": [
+        re.compile(r"Failed\s+password\s+for\s+(?:invalid\s+user\s+)?(\S+)\s+from\s+(\S+)", re.I),
+        re.compile(r"authentication\s+failure.*rhost=(\S+).*user=(\S+)", re.I),
+        re.compile(r"pam_unix.*authentication\s+failure", re.I),
+    ],
+    "AUTH_SUCCESS": [
+        re.compile(r"Accepted\s+(?:password|publickey)\s+for\s+(\S+)\s+from\s+(\S+)", re.I),
+        re.compile(r"session\s+opened\s+for\s+user\s+(\S+)", re.I),
+    ],
+    "PRIVILEGE_ESCALATION": [
+        re.compile(r"sudo:\s+(\S+)\s+:", re.I),
+        re.compile(r"su\[\d+\]:\s+(?:Successful|FAILED)\s+su\s+for\s+(\S+)\s+by\s+(\S+)", re.I),
+        re.compile(r"COMMAND=(.+)", re.I),
+    ],
+    "ACCOUNT_CREATION": [
+        re.compile(r"new\s+user:\s+name=(\S+)", re.I),
+        re.compile(r"useradd.*name=(\S+)", re.I),
+        re.compile(r"adduser.*(\S+)", re.I),
+    ],
+    "ACCOUNT_MODIFICATION": [
+        re.compile(r"usermod.*name=(\S+)", re.I),
+        re.compile(r"password\s+changed\s+for\s+(\S+)", re.I),
+        re.compile(r"group\s+changed.*name=(\S+)", re.I),
+    ],
+    "SSH_EVENT": [
+        re.compile(r"sshd\[\d+\]:\s+(.*)", re.I),
+        re.compile(r"Disconnected\s+from\s+(?:invalid\s+user\s+)?(\S+)\s+(\S+)", re.I),
+        re.compile(r"Invalid\s+user\s+(\S+)\s+from\s+(\S+)", re.I),
+    ],
+    "SESSION_EVENT": [
+        re.compile(r"session\s+(?:opened|closed)\s+for\s+user\s+(\S+)", re.I),
+    ],
+}
 
-    def parse(self, line, context):
+IP_PATTERN = re.compile(r"\b(\d{1,3}(?:\.\d{1,3}){3})\b")
+USER_PATTERN = re.compile(r"(?:user[= ]+|for\s+)(\S+)", re.I)
+
+
+class AuthDetector(BaseDetector):
+    """Detects authentication and credential-related security events."""
+
+    def matches(self, line: str) -> bool:
+        lower = line.lower()
+        return any(kw in lower for kw in [
+            "failed password", "accepted password", "authentication failure",
+            "invalid user", "sudo", "su[", "su:", "session opened",
+            "session closed", "new user", "useradd", "usermod",
+            "password changed", "sshd[", "pam_unix", "pam_sss",
+            "login failed", "login successful", "access granted",
+            "access denied", "account locked", "account disabled",
+        ])
+
+    def parse(self, line: str, context: dict) -> dict:
+        event_type = "AUTH_EVENT"
+        extracted_user = None
+        extracted_ip = None
+
+        for etype, patterns in AUTH_PATTERNS.items():
+            for pat in patterns:
+                m = pat.search(line)
+                if m:
+                    event_type = etype
+                    groups = m.groups()
+                    if groups:
+                        extracted_user = groups[0]
+                    if len(groups) > 1:
+                        ip_candidate = groups[1]
+                        if IP_PATTERN.match(ip_candidate or ""):
+                            extracted_ip = ip_candidate
+                    break
+            if event_type != "AUTH_EVENT":
+                break
+
+        # Fallback IP extraction
+        if not extracted_ip:
+            ip_m = IP_PATTERN.search(line)
+            if ip_m:
+                extracted_ip = ip_m.group(1)
+
+        # Fallback user extraction
+        if not extracted_user:
+            user_m = USER_PATTERN.search(line)
+            if user_m:
+                extracted_user = user_m.group(1)
+
+        is_failure = any(kw in line.lower() for kw in [
+            "failed", "failure", "invalid", "denied", "error", "locked"
+        ])
+
+        outcome = "FAILURE" if is_failure else "SUCCESS"
+        summary = f"{event_type} [{outcome}]"
+        if extracted_user:
+            summary += f" user={extracted_user}"
+        if extracted_ip:
+            summary += f" from {extracted_ip}"
+
         return {
             "artifact_id": str(uuid.uuid4()),
             "case_id": context["case_id"],
@@ -80,12 +111,20 @@ class AuthDetector(BaseDetector):
             "source_tool": "auth_logs",
             "source_file": context["file"],
             "host_id": context["host"],
-            "user_context": None,
-            "artifact_timestamp": datetime.now(timezone.utc),
+            "user_context": extracted_user,
+            "artifact_timestamp": context.get("parsed_timestamp") or datetime.now(timezone.utc),
             "artifact_path": context["file"],
-            "content_summary": "Authentication-related activity detected",
-            "raw_content": line.strip(),
-            "md5": None, "sha1": None, "sha256": None,
-            "metadata": {},
-            "ingested_at": datetime.now(timezone.utc)
+            "content_summary": summary,
+            "raw_content": line.strip()[:2000],
+            "md5": None,
+            "sha1": None,
+            "sha256": None,
+            "metadata": {
+                "event_type": event_type,
+                "outcome": outcome,
+                "target_user": extracted_user,
+                "source_ip": extracted_ip,
+                "detector": self.detector_name,
+            },
+            "ingested_at": datetime.now(timezone.utc),
         }

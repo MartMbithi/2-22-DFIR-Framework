@@ -1,25 +1,16 @@
 'use client';
-
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getToken, isTokenExpired, clearToken } from '@/lib/api';
 
-function hasToken(): boolean {
-    return typeof window !== 'undefined'
-        && !!localStorage.getItem('token');
-}
-
-export default function AuthGuard({
-    children
-}: {
-    children: React.ReactNode;
-}) {
+export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const router = useRouter();
-
     useEffect(() => {
-        if (!hasToken()) {
+        const token = getToken();
+        if (!token || isTokenExpired(token)) {
+            clearToken();
             router.replace('/login');
         }
-    }, []);
-
+    }, [router]);
     return <>{children}</>;
 }

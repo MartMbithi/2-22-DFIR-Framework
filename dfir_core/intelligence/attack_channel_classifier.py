@@ -1,97 +1,136 @@
+# 2:22 DFIR Framework — Attack Channel Classifier & Kill Chain Mapper
+# Classifies observed attack channels and maps to Cyber Kill Chain phases
 
-#
-#   Crafted On Wed Jan 07 2026
-#   From his finger tips, through his IDE to your deployment environment at full throttle with no bugs, loss of data,
-#   fluctuations, signal interference, or doubt—it can only be
-#   the legendary coding wizard, Martin Mbithi (martin@devlan.co.ke, www.martmbithi.github.io)
-#   
-#   www.devlan.co.ke
-#   hello@devlan.co.ke
-#
-#
-#   The Devlan Solutions LTD Super Duper User License Agreement
-#   Copyright (c) 2022 Devlan Solutions LTD
-#
-#
-#   1. LICENSE TO BE AWESOME
-#   Congrats, you lucky human! Devlan Solutions LTD hereby bestows upon you the magical,
-#   revocable, personal, non-exclusive, and totally non-transferable right to install this epic system
-#   on not one, but TWO separate computers for your personal, non-commercial shenanigans.
-#   Unless, of course, you've leveled up with a commercial license from Devlan Solutions LTD.
-#   Sharing this software with others or letting them even peek at it? Nope, that's a big no-no.
-#   And don't even think about putting this on a network or letting a crowd join the fun unless you
-#   first scored a multi-user license from us. Sharing is caring, but rules are rules!
-#
-#   2. COPYRIGHT POWER-UP
-#   This Software is the prized possession of Devlan Solutions LTD and is shielded by copyright law
-#   and the forces of international copyright treaties. You better not try to hide or mess with
-#   any of our awesome proprietary notices, labels, or marks. Respect the swag!
-#
-#
-#   3. RESTRICTIONS, NO CHEAT CODES ALLOWED
-#   You may not, and you shall not let anyone else:
-#   (a) reverse engineer, decompile, decode, decrypt, disassemble, or do any sneaky stuff to
-#   figure out the source code of this software;
-#   (b) modify, remix, distribute, or create your own funky version of this masterpiece;
-#   (c) copy (except for that one precious backup), distribute, show off in public, transmit, sell, rent,
-#   lease, or otherwise exploit the Software like it's your own.
-#
-#
-#   4. THE ENDGAME
-#   This License lasts until one of us says 'Game Over'. You can call it quits anytime by
-#   destroying the Software and all the copies you made (no hiding them under your bed).
-#   If you break any of these sacred rules, this License self-destructs, and you must obliterate
-#   every copy of the Software, no questions asked.
-#
-#
-#   5. NO GUARANTEES, JUST PIXELS
-#   DEVLAN SOLUTIONS LTD doesn’t guarantee this Software is flawless—it might have a few
-#   quirks, but who doesn’t? DEVLAN SOLUTIONS LTD washes its hands of any other warranties,
-#   implied or otherwise. That means no promises of perfect performance, marketability, or
-#   non-infringement. Some places have different rules, so you might have extra rights, but don’t
-#   count on us for backup if things go sideways. Use at your own risk, brave adventurer!
-#
-#
-#   6. SEVERABILITY—KEEP THE GOOD STUFF
-#   If any part of this License gets tossed out by a judge, don’t worry—the rest of the agreement
-#   still stands like a boss. Just because one piece fails doesn’t mean the whole thing crumbles.
-#
-#
-#   7. NO DAMAGE, NO DRAMA
-#   Under no circumstances will Devlan Solutions LTD or its squad be held responsible for any wild,
-#   indirect, or accidental chaos that might come from using this software—even if we warned you!
-#   And if you ever think you’ve got a claim, the most you’re getting out of us is the license fee you
-#   paid—if any. No drama, no big payouts, just pixels and code.
-#
-#
-
-from collections import defaultdict
+from collections import Counter, defaultdict
+from config import MITRE_ATTACK_DB, IOC_TECHNIQUE_MAP, KILL_CHAIN_PHASES
 
 ATTACK_CHANNELS = {
-    "web": ["http", "https", "waf", "sql", "sqli", "lfi", "xss", "path traversal"],
-    "authentication": ["login failed", "authentication", "password", "ssh", "rdp", "vpn", "brute force", "mfa"],
-    "network": ["port scan", "syn", "icmp", "ldap", "smb", "dns", "smtp"],
-    "endpoint": ["process", "binary", "execution", "service", "registry", "powershell", "cmd.exe"],
-    "cloud": ["iam", "assume role", "token", "api", "cloudtrail", "azure", "gcp"]
+    "web_application": [
+        "http", "https", "waf", "sql", "sqli", "lfi", "xss", "rfi", "rce",
+        "path traversal", "directory traversal", "web shell",
+        "wordpress", "xmlrpc", "phpmyadmin", "injection",
+        "modsecurity", "anomaly score", "owasp",
+    ],
+    "authentication": [
+        "login failed", "authentication failure", "failed password",
+        "invalid user", "brute force", "password spray",
+        "ssh", "rdp", "vpn", "mfa", "credential",
+        "account locked", "account disabled",
+    ],
+    "network": [
+        "port scan", "syn", "icmp", "ldap", "smb", "dns",
+        "nmap", "masscan", "lateral", "connection refused",
+        "firewall", "iptables", "ufw",
+    ],
+    "endpoint": [
+        "process", "binary", "execution", "service", "registry",
+        "powershell", "cmd.exe", "bash", "shell",
+        "scheduled task", "crontab", "persistence",
+        "mimikatz", "credential dump",
+    ],
+    "data_integrity": [
+        "exfiltrat", "staging", "archive", "compress",
+        "encrypt", "ransomware", "deletion", "wipe",
+        "log tamper", "history -c",
+    ],
+    "system_infrastructure": [
+        "kernel", "systemd", "service stop", "service start",
+        "reboot", "shutdown", "mount", "usb",
+        "package install", "dpkg", "apt",
+    ],
 }
 
 
-def classify_attack_channels(triaged):
+def classify_attack_channels(triaged: list[dict]) -> dict[str, bool]:
+    """Classify which attack channels are present in the triaged artifacts."""
     channels = {k: False for k in ATTACK_CHANNELS}
     for a in triaged:
-        s = a.get("content_summary", "").lower()
-        for ch, keys in ATTACK_CHANNELS.items():
-            if any(k in s for k in keys):
+        s = (a.get("content_summary") or "").lower()
+        raw = (a.get("raw_content") or "").lower()
+        combined = f"{s} {raw}"
+        for ch, keywords in ATTACK_CHANNELS.items():
+            if any(kw in combined for kw in keywords):
                 channels[ch] = True
     return channels
 
 
-def classify_channel_evidence(triaged):
+def classify_channel_evidence(triaged: list[dict]) -> dict[str, list[str]]:
+    """Return specific keyword evidence for each observed channel."""
     evidence = defaultdict(set)
     for a in triaged:
-        s = a.get("content_summary", "").lower()
-        for ch, keys in ATTACK_CHANNELS.items():
-            for k in keys:
-                if k in s:
-                    evidence[ch].add(k)
+        s = (a.get("content_summary") or "").lower()
+        for ch, keywords in ATTACK_CHANNELS.items():
+            for kw in keywords:
+                if kw in s:
+                    evidence[ch].add(kw)
     return {k: sorted(v) for k, v in evidence.items()}
+
+
+def map_artifacts_to_mitre(triaged: list[dict]) -> list[dict]:
+    """
+    Map triaged artifacts to MITRE ATT&CK techniques using
+    the IOC_TECHNIQUE_MAP from config.
+
+    Returns list of dicts with artifact_id, technique_id, technique_name,
+    tactic, and matched_ioc_type.
+    """
+    mappings = []
+    seen = set()
+
+    for a in triaged:
+        summary = (a.get("content_summary") or "").upper()
+        metadata = a.get("metadata") or {}
+        attack_types = metadata.get("attack_types", [])
+
+        # Check attack types from detector metadata
+        ioc_types = list(attack_types)
+
+        # Check content summary against IOC map keys
+        for ioc_type in IOC_TECHNIQUE_MAP:
+            if ioc_type in summary:
+                if ioc_type not in ioc_types:
+                    ioc_types.append(ioc_type)
+
+        for ioc_type in ioc_types:
+            technique_ids = IOC_TECHNIQUE_MAP.get(ioc_type, [])
+            for tid in technique_ids:
+                key = (a["artifact_id"], tid)
+                if key in seen:
+                    continue
+                seen.add(key)
+                tech = MITRE_ATTACK_DB.get(tid)
+                if tech:
+                    mappings.append({
+                        "artifact_id": a["artifact_id"],
+                        "technique_id": tid,
+                        "technique_name": tech[0],
+                        "tactic": tech[1],
+                        "description": tech[2],
+                        "matched_ioc_type": ioc_type,
+                    })
+
+    return mappings
+
+
+def map_to_kill_chain(mitre_mappings: list[dict]) -> dict[str, list[str]]:
+    """
+    Map observed MITRE techniques to Cyber Kill Chain phases.
+    Returns dict of phase → list of technique IDs observed.
+    """
+    observed = {}
+    technique_ids = {m["technique_id"] for m in mitre_mappings}
+
+    for phase, techniques in KILL_CHAIN_PHASES.items():
+        hits = [t for t in techniques if t in technique_ids]
+        if hits:
+            observed[phase] = hits
+
+    return observed
+
+
+def compute_tactic_distribution(mitre_mappings: list[dict]) -> dict[str, int]:
+    """Count how many techniques were observed per MITRE ATT&CK tactic."""
+    counter = Counter()
+    for m in mitre_mappings:
+        counter[m["tactic"]] += 1
+    return dict(counter.most_common())

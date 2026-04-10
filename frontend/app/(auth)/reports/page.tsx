@@ -1,451 +1,88 @@
 'use client';
+import { useEffect, useState } from 'react';
+import DashboardLayout from '@/app/dashboard-layout';
+import { apiFetch, getToken } from '@/lib/api';
+import { HudArrows } from '@/components/Nav';
 
-/*
- * 2:22 DFIR — Reports Intelligence + Correlation + Preview
- */
-
-import { useEffect, useMemo, useState } from 'react';
-import AuthGuard from '@/components/AuthGuard';
-import AppSidebar from '@/components/AppSidebar';
-import AppTopBar from '@/components/AppTopBar';
-import { apiFetch } from '@/lib/api';
-
-/* ================= TYPES ================= */
-
-type Case = {
-    case_id: string;
-    case_name: string;
-};
-
-type Report = {
-    report_id: string;
-    case_id: string;
-    report_type: string;
-    report_generated_at: string;
-};
-
-type Job = {
-    job_id: string;
-    case_id: string;
-    created_at: string;
-};
-
-type Artifact = {
-    artifact_id: string;
-    artifact_name: string;
-    artifact_content?: string;
-};
-
-/* ================= PAGE ================= */
+const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
+type Case = { case_id: string; case_name: string };
+type Report = { report_id: string; case_id: string; report_type: string; report_path: string; report_generated_at: string };
 
 export default function ReportsPage() {
-
     const [cases, setCases] = useState<Case[]>([]);
-    const [caseSearch, setCaseSearch] = useState('');
-    const [selectedCase, setSelectedCase] = useState('');
-
     const [reports, setReports] = useState<Report[]>([]);
-    const [jobs, setJobs] = useState<Job[]>([]);
-    const [artifacts, setArtifacts] = useState<Artifact[]>([]);
-
-    const [loading, setLoading] = useState(false);
-
-    const [search, setSearch] = useState('');
-    const [typeFilter, setTypeFilter] = useState('');
-
-    /* PREVIEW */
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [previewLoading, setPreviewLoading] = useState(false);
-    const [activeReport, setActiveReport] = useState<string | null>(null);
-
-    /* INDICATOR LINKING */
-    const [selectedIndicator, setSelectedIndicator] = useState<string | null>(null);
-
-    /* ================= LOAD CASES ================= */
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        apiFetch('/cases/').then(setCases);
+        (async () => {
+            try {
+                const cs = await apiFetch('/cases/');
+                setCases(cs);
+                const reps: Report[] = [];
+                for (const c of cs) {
+                    try { reps.push(...await apiFetch(`/reports/case/${c.case_id}`)); } catch { }
+                }
+                setReports(reps.sort((a, b) => +new Date(b.report_generated_at) - +new Date(a.report_generated_at)));
+            } catch { }
+            setLoading(false);
+        })();
     }, []);
 
-    /* ================= LOAD DATA ================= */
+    const caseMap = Object.fromEntries(cases.map(c => [c.case_id, c.case_name]));
 
-    async function load(case_id: string) {
-
-        if (!case_id) {
-            setReports([]);
-            setJobs([]);
-            setArtifacts([]);
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-
-            const [r, j, a] = await Promise.all([
-                apiFetch(`/reports/case/${case_id}`),
-                apiFetch(`/jobs?case_id=${case_id}`),
-                apiFetch(`/artifacts/artifacts/${case_id}`)
-            ]);
-
-            setReports(r);
-            setJobs(j);
-            setArtifacts(a);
-
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    useEffect(() => {
-        load(selectedCase);
-    }, [selectedCase]);
-
-    /* ================= CASE SEARCH ================= */
-
-    const filteredCases = useMemo(() => {
-        return cases.filter(c =>
-            c.case_name.toLowerCase().includes(caseSearch.toLowerCase())
-        );
-    }, [cases, caseSearch]);
-
-    /* ================= REPORT FILTER ================= */
-
-    const filteredReports = useMemo(() => {
-        return reports.filter(r => {
-            const s = r.report_type.toLowerCase().includes(search.toLowerCase());
-            const t = typeFilter ? r.report_type === typeFilter : true;
-            return s && t;
-        });
-    }, [reports, search, typeFilter]);
-
-    const reportTypes = useMemo(() => {
-        return Array.from(new Set(reports.map(r => r.report_type)));
-    }, [reports]);
-
-    /* ================= JOB LINK ================= */
-
-    function getJobForReport(report: Report) {
-        return jobs.find(j =>
-            new Date(report.report_generated_at) >= new Date(j.created_at)
-        );
-    }
-
-    /* ================= INDICATOR ENGINE ================= */
-
-    function extractIndicators(text: string) {
-
-        const ips = text.match(/\b\d{1,3}(\.\d{1,3}){3}\b/g) || [];
-        const hashes = text.match(/\b[a-fA-F0-9]{32,64}\b/g) || [];
-        const emails = text.match(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i) || [];
-
-        return [...ips, ...hashes, ...emails];
-    }
-
-    const artifactIndicators = useMemo(() => {
-
-        const map: Record<string, string[]> = {};
-
-        artifacts.forEach(a => {
-            if (!a.artifact_content) return;
-            map[a.artifact_id] = extractIndicators(a.artifact_content);
-        });
-
-        return map;
-
-    }, [artifacts]);
-
-    /* ================= DOWNLOAD ================= */
-
-    async function downloadReport(reportId: string) {
-
-        const res = await fetch(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/reports/${reportId}/download`,
-            {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`
-                }
-            }
-        );
-
-        if (!res.ok) {
-            alert('Download failed');
-            return;
-        }
-
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-
+    function download(r: Report) {
+        const token = getToken();
+        const url = `${API}/reports/${r.report_id}/download`;
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `dfir-report-${reportId}.pdf`;
-        a.click();
-
-        URL.revokeObjectURL(url);
+        // Use fetch with auth header to download
+        fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => res.blob())
+            .then(blob => {
+                const blobUrl = URL.createObjectURL(blob);
+                a.href = blobUrl;
+                a.download = `${r.case_id}_report.${r.report_type}`;
+                a.click();
+                URL.revokeObjectURL(blobUrl);
+            });
     }
-
-    /* ================= PREVIEW ================= */
-
-    async function previewReport(reportId: string) {
-
-        setPreviewLoading(true);
-        setActiveReport(reportId);
-
-        try {
-
-            const res = await fetch(
-                `${process.env.NEXT_PUBLIC_API_BASE_URL}/reports/${reportId}/download`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem('token')}`
-                    }
-                }
-            );
-
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-
-            setPreviewUrl(url);
-
-        } finally {
-            setPreviewLoading(false);
-        }
-    }
-
-    /* ================= INDICATOR → REPORT ================= */
-
-    function openFromIndicator(indicator: string) {
-
-        setSelectedIndicator(indicator);
-
-        const target = reports[0]; // fallback: first report
-
-        if (target) {
-            previewReport(target.report_id);
-        }
-    }
-
-    /* ================= UI ================= */
 
     return (
+        <DashboardLayout>
+            <h1 className="h4 mb-3">Forensic Reports</h1>
 
-        <AuthGuard>
+            {loading && <div className="text-center py-5"><div className="spinner-border text-theme" /></div>}
 
-            <div id="app" className="app app-sidebar-fixed">
+            {!loading && reports.length === 0 && (
+                <div className="text-center py-5 text-body text-opacity-50">
+                    <i className="bi bi-file-earmark-text fs-1 d-block mb-2" />
+                    <p>No reports generated yet. Run an investigation to generate forensic reports.</p>
+                </div>
+            )}
 
-                <AppSidebar />
-                <AppTopBar />
-
-                <div id="content" className="app-content">
-                    <div className="container-fluid">
-
-                        {/* HEADER */}
-                        <div className="row mb-4">
-                            <div className="col">
-                                <h1>Investigation Reports</h1>
-                                <p className="text-body text-opacity-75 small">
-                                    Correlated forensic intelligence outputs
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* CASE SELECT */}
-                        <div className="card mb-3">
+            <div className="row g-3">
+                {reports.map(r => (
+                    <div className="col-lg-4 col-md-6" key={r.report_id}>
+                        <div className="card h-100 hover-shadow">
                             <div className="card-body">
-
-                                <input
-                                    className="form-control form-control-sm mb-2"
-                                    placeholder="Search case..."
-                                    value={caseSearch}
-                                    onChange={e => setCaseSearch(e.target.value)}
-                                />
-
-                                <select
-                                    className="form-select form-select-sm"
-                                    value={selectedCase}
-                                    onChange={e => setSelectedCase(e.target.value)}
-                                >
-                                    <option value="">Select Case</option>
-                                    {filteredCases.map(c => (
-                                        <option key={c.case_id} value={c.case_id}>
-                                            {c.case_name}
-                                        </option>
-                                    ))}
-                                </select>
-
+                                <div className="d-flex justify-content-between align-items-start mb-2">
+                                    <span className={`badge ${r.report_type === 'pdf' ? 'bg-danger' : 'bg-secondary'} text-uppercase`}>
+                                        {r.report_type}
+                                    </span>
+                                    <span className="small text-body text-opacity-50">{r.report_id.slice(0, 8)}</span>
+                                </div>
+                                <div className="fw-semibold small mb-1">{caseMap[r.case_id] || r.case_id}</div>
+                                <div className="small text-body text-opacity-50 mb-3">
+                                    {new Date(r.report_generated_at).toLocaleString()}
+                                </div>
+                                <button className="btn btn-sm btn-outline-theme w-100" onClick={() => download(r)}>
+                                    <i className="bi bi-download me-1" />Download
+                                </button>
                             </div>
                             <HudArrows />
                         </div>
-
-                        {/* MAIN */}
-                        <div className="row g-3">
-
-                            {/* LEFT */}
-                            <div className="col-lg-5">
-
-                                <div className="card h-100">
-                                    <div className="card-body">
-
-                                        {/* ARTIFACT INDICATORS */}
-                                        <div className="mb-3">
-                                            <div className="fw-semibold mb-2">
-                                                Artifact Indicators
-                                            </div>
-
-                                            {artifacts.map(a => {
-
-                                                const indicators = artifactIndicators[a.artifact_id] || [];
-
-                                                return (
-                                                    <div key={a.artifact_id} className="border rounded p-2 mb-2 small">
-
-                                                        <div className="text-body text-opacity-75 mb-1">
-                                                            {a.artifact_name}
-                                                        </div>
-
-                                                        <div className="d-flex flex-wrap gap-1">
-
-                                                            {indicators.slice(0, 5).map((i, idx) => (
-                                                                <span
-                                                                    key={idx}
-                                                                    className="badge bg-dark"
-                                                                    style={{ cursor: 'pointer' }}
-                                                                    onClick={() => openFromIndicator(i)}
-                                                                >
-                                                                    {i}
-                                                                </span>
-                                                            ))}
-
-                                                        </div>
-
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {/* REPORT LIST */}
-                                        {filteredReports.map(r => {
-
-                                            const job = getJobForReport(r);
-
-                                            return (
-                                                <div
-                                                    key={r.report_id}
-                                                    className={`border rounded p-3 mb-3 small ${activeReport === r.report_id ? 'border-theme' : ''}`}
-                                                >
-
-                                                    <div className="fw-semibold">
-                                                        {r.report_type}
-                                                    </div>
-
-                                                    <div className="text-body text-opacity-50 text-xs">
-                                                        Job: {job?.job_id.slice(0, 8) || '—'}
-                                                    </div>
-
-                                                    <div className="text-body text-opacity-50 text-xs mb-2">
-                                                        {new Date(r.report_generated_at).toLocaleString()}
-                                                    </div>
-
-                                                    <div className="d-flex gap-2">
-
-                                                        <button
-                                                            className="btn btn-sm btn-outline-theme"
-                                                            onClick={() => previewReport(r.report_id)}
-                                                        >
-                                                            Preview
-                                                        </button>
-
-                                                        <button
-                                                            className="btn btn-sm btn-outline-secondary"
-                                                            onClick={() => downloadReport(r.report_id)}
-                                                        >
-                                                            Download
-                                                        </button>
-
-                                                    </div>
-
-                                                </div>
-                                            );
-                                        })}
-
-                                    </div>
-                                    <HudArrows />
-                                </div>
-
-                            </div>
-
-                            {/* RIGHT PREVIEW */}
-                            <div className="col-lg-7">
-
-                                <div className="card h-100">
-                                    <div className="card-body p-0">
-
-                                        {!previewUrl && (
-                                            <div className="d-flex justify-content-center align-items-center h-100 text-body text-opacity-50">
-                                                Select a report to preview
-                                            </div>
-                                        )}
-
-                                        {previewLoading && (
-                                            <div className="d-flex justify-content-center align-items-center h-100">
-                                                Loading preview…
-                                            </div>
-                                        )}
-
-                                        {previewUrl && !previewLoading && (
-                                            <div style={{ position: 'relative', height: '100%' }}>
-
-                                                <iframe
-                                                    src={previewUrl}
-                                                    style={{ width: '100%', height: '100%', border: 'none' }}
-                                                />
-
-                                                {selectedIndicator && (
-                                                    <div
-                                                        style={{
-                                                            position: 'absolute',
-                                                            top: 10,
-                                                            right: 10,
-                                                            background: '#000',
-                                                            color: '#0f0',
-                                                            padding: '6px 10px',
-                                                            fontSize: '12px',
-                                                            borderRadius: '6px'
-                                                        }}
-                                                    >
-                                                        Highlight: {selectedIndicator}
-                                                    </div>
-                                                )}
-
-                                            </div>
-                                        )}
-
-                                    </div>
-                                    <HudArrows />
-                                </div>
-
-                            </div>
-
-                        </div>
-
                     </div>
-                </div>
-
+                ))}
             </div>
-
-        </AuthGuard>
-    );
-}
-
-/* ================= HUD ================= */
-
-function HudArrows() {
-    return (
-        <div className="card-arrow">
-            <div className="card-arrow-top-left"></div>
-            <div className="card-arrow-top-right"></div>
-            <div className="card-arrow-bottom-left"></div>
-            <div className="card-arrow-bottom-right"></div>
-        </div>
+        </DashboardLayout>
     );
 }

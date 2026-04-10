@@ -1,58 +1,23 @@
 'use client';
-
+import { useState } from 'react';
 import AuthGuard from '@/components/AuthGuard';
 import AppSidebar from '@/components/AppSidebar';
 import AppTopBar from '@/components/AppTopBar';
-import Script from 'next/script';
 
-export default function DashboardLayout({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
     return (
         <AuthGuard>
-            <>
-                {/* ================= THEME CSS ================= */}
-                <link
-                    rel="stylesheet"
-                    href="/assets/css/vendor.min.css"
-                />
-                <link
-                    rel="stylesheet"
-                    href="/assets/css/app.min.css"
-                />
-
-                {/* ================= APP SHELL ================= */}
-                <div
-                    id="app"
-                    className="app app-header-fixed app-sidebar-fixed"
-                    data-bs-theme="dark"
-                >
-                    {/* TOP BAR */}
-                    <AppTopBar />
-
-                    {/* SIDEBAR */}
-                    <AppSidebar />
-
-                    {/* CONTENT */}
-                    <div id="content" className="app-content">
-                        <div className="container-fluid">
-                            {children}
-                        </div>
+            <div id="app" className="app app-sidebar-fixed">
+                <AppTopBar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+                <AppSidebar show={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+                <div id="content" className="app-content fade-in">
+                    <div className="container-fluid p-3 p-lg-4">
+                        {children}
                     </div>
                 </div>
-
-                {/* ================= THEME JS ================= */}
-                <Script
-                    src="/assets/js/vendor.min.js"
-                    strategy="afterInteractive"
-                />
-                <Script
-                    src="/assets/js/app.min.js"
-                    strategy="afterInteractive"
-                />
-            </>
+            </div>
         </AuthGuard>
     );
 }

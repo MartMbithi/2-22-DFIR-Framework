@@ -1,78 +1,95 @@
-#
-#   Crafted On Wed Jan 07 2026
-#   From his finger tips, through his IDE to your deployment environment at full throttle with no bugs, loss of data,
-#   fluctuations, signal interference, or doubt—it can only be
-#   the legendary coding wizard, Martin Mbithi (martin@devlan.co.ke, www.martmbithi.github.io)
-#   
-#   www.devlan.co.ke
-#   hello@devlan.co.ke
-#
-#
-#   The Devlan Solutions LTD Super Duper User License Agreement
-#   Copyright (c) 2022 Devlan Solutions LTD
-#
-#
-#   1. LICENSE TO BE AWESOME
-#   Congrats, you lucky human! Devlan Solutions LTD hereby bestows upon you the magical,
-#   revocable, personal, non-exclusive, and totally non-transferable right to install this epic system
-#   on not one, but TWO separate computers for your personal, non-commercial shenanigans.
-#   Unless, of course, you've leveled up with a commercial license from Devlan Solutions LTD.
-#   Sharing this software with others or letting them even peek at it? Nope, that's a big no-no.
-#   And don't even think about putting this on a network or letting a crowd join the fun unless you
-#   first scored a multi-user license from us. Sharing is caring, but rules are rules!
-#
-#   2. COPYRIGHT POWER-UP
-#   This Software is the prized possession of Devlan Solutions LTD and is shielded by copyright law
-#   and the forces of international copyright treaties. You better not try to hide or mess with
-#   any of our awesome proprietary notices, labels, or marks. Respect the swag!
-#
-#
-#   3. RESTRICTIONS, NO CHEAT CODES ALLOWED
-#   You may not, and you shall not let anyone else:
-#   (a) reverse engineer, decompile, decode, decrypt, disassemble, or do any sneaky stuff to
-#   figure out the source code of this software;
-#   (b) modify, remix, distribute, or create your own funky version of this masterpiece;
-#   (c) copy (except for that one precious backup), distribute, show off in public, transmit, sell, rent,
-#   lease, or otherwise exploit the Software like it's your own.
-#
-#
-#   4. THE ENDGAME
-#   This License lasts until one of us says 'Game Over'. You can call it quits anytime by
-#   destroying the Software and all the copies you made (no hiding them under your bed).
-#   If you break any of these sacred rules, this License self-destructs, and you must obliterate
-#   every copy of the Software, no questions asked.
-#
-#
-#   5. NO GUARANTEES, JUST PIXELS
-#   DEVLAN SOLUTIONS LTD doesn’t guarantee this Software is flawless—it might have a few
-#   quirks, but who doesn’t? DEVLAN SOLUTIONS LTD washes its hands of any other warranties,
-#   implied or otherwise. That means no promises of perfect performance, marketability, or
-#   non-infringement. Some places have different rules, so you might have extra rights, but don’t
-#   count on us for backup if things go sideways. Use at your own risk, brave adventurer!
-#
-#
-#   6. SEVERABILITY—KEEP THE GOOD STUFF
-#   If any part of this License gets tossed out by a judge, don’t worry—the rest of the agreement
-#   still stands like a boss. Just because one piece fails doesn’t mean the whole thing crumbles.
-#
-#
-#   7. NO DAMAGE, NO DRAMA
-#   Under no circumstances will Devlan Solutions LTD or its squad be held responsible for any wild,
-#   indirect, or accidental chaos that might come from using this software—even if we warned you!
-#   And if you ever think you’ve got a claim, the most you’re getting out of us is the license fee you
-#   paid—if any. No drama, no big payouts, just pixels and code.
-#
-#
+# 2:22 DFIR Framework — System Event Detector
+# Detects system-level security events: service changes, kernel alerts, log tampering
 
+import re
 import uuid
 from datetime import datetime, timezone
 from .base_detector import BaseDetector
 
-class SystemDetector(BaseDetector):
-    def matches(self, line):
-        return any(x in line.lower() for x in ["kernel", "systemd", "service", "error"])
+SYSTEM_PATTERNS = {
+    "SERVICE_DISRUPTION": [
+        re.compile(r"(?:systemctl|service)\s+(?:stop|disable|mask)\s+(\S+)", re.I),
+        re.compile(r"Stopped\s+(.+?)(?:\.|$)", re.I),
+        re.compile(r"Failed\s+to\s+start\s+(.+?)(?:\.|$)", re.I),
+        re.compile(r"service\s+(\S+)\s+(?:crashed|failed|exited)", re.I),
+    ],
+    "SERVICE_START": [
+        re.compile(r"Started\s+(.+?)(?:\.|$)", re.I),
+        re.compile(r"(?:systemctl|service)\s+(?:start|restart|enable)\s+(\S+)", re.I),
+    ],
+    "KERNEL_ALERT": [
+        re.compile(r"kernel:\s+\[?\s*[\d.]+\]?\s*(.*)", re.I),
+        re.compile(r"segfault|oom-killer|panic|oops", re.I),
+        re.compile(r"Out\s+of\s+memory", re.I),
+    ],
+    "LOG_TAMPERING": [
+        re.compile(r"(?:truncat|delet|clear|rotat).*(?:log|syslog|auth\.log|messages)", re.I),
+        re.compile(r"journal.*(?:vacuum|rotate|flush)", re.I),
+        re.compile(r"logrotate", re.I),
+        re.compile(r"history\s+-c|>.*\.bash_history|unset\s+HISTFILE", re.I),
+    ],
+    "FIREWALL_EVENT": [
+        re.compile(r"(?:iptables|nftables|ufw|firewalld).*(?:DROP|REJECT|ACCEPT|BLOCK)", re.I),
+        re.compile(r"UFW\s+(?:BLOCK|ALLOW|DENY)", re.I),
+    ],
+    "DISK_EVENT": [
+        re.compile(r"(?:mount|umount|fdisk|mkfs|dd\s+if=)", re.I),
+        re.compile(r"(?:USB|removable).*(?:attach|detach|insert|remov)", re.I),
+    ],
+    "PACKAGE_EVENT": [
+        re.compile(r"(?:apt|yum|dnf|pip|npm)\s+(?:install|remove|update|upgrade)", re.I),
+        re.compile(r"dpkg.*(?:install|remove|configure)", re.I),
+    ],
+}
 
-    def parse(self, line, context):
+
+class SystemDetector(BaseDetector):
+    """Detects system-level events relevant to forensic investigation."""
+
+    def matches(self, line: str) -> bool:
+        lower = line.lower()
+        return any(kw in lower for kw in [
+            "kernel", "systemd", "systemctl", "service",
+            "started", "stopped", "failed to start",
+            "segfault", "oom-killer", "panic",
+            "iptables", "ufw", "firewall",
+            "mount", "usb", "removable",
+            "logrotate", "truncat", "history -c",
+            "dpkg", "apt ", "yum ", "rpm",
+            "error", "critical", "emergency", "alert",
+        ])
+
+    def parse(self, line: str, context: dict) -> dict:
+        event_type = "SYSTEM_EVENT"
+        detail = None
+
+        for etype, patterns in SYSTEM_PATTERNS.items():
+            for pat in patterns:
+                m = pat.search(line)
+                if m:
+                    event_type = etype
+                    groups = m.groups()
+                    if groups:
+                        detail = groups[0][:200] if groups[0] else None
+                    break
+            if event_type != "SYSTEM_EVENT":
+                break
+
+        # Determine severity hint
+        lower = line.lower()
+        severity_hint = "INFO"
+        if any(kw in lower for kw in ["panic", "segfault", "oom-killer", "emergency"]):
+            severity_hint = "CRITICAL"
+        elif any(kw in lower for kw in ["failed", "error", "crash", "denied", "block"]):
+            severity_hint = "HIGH"
+        elif any(kw in lower for kw in ["warning", "warn"]):
+            severity_hint = "MEDIUM"
+
+        summary = event_type
+        if detail:
+            summary += f": {detail[:120]}"
+        summary += f" [{severity_hint}]"
+
         return {
             "artifact_id": str(uuid.uuid4()),
             "case_id": context["case_id"],
@@ -81,11 +98,18 @@ class SystemDetector(BaseDetector):
             "source_file": context["file"],
             "host_id": context["host"],
             "user_context": None,
-            "artifact_timestamp": datetime.now(timezone.utc),
+            "artifact_timestamp": context.get("parsed_timestamp") or datetime.now(timezone.utc),
             "artifact_path": context["file"],
-            "content_summary": "System-level event detected",
-            "raw_content": line.strip(),
-            "md5": None, "sha1": None, "sha256": None,
-            "metadata": {},
-            "ingested_at": datetime.now(timezone.utc)
+            "content_summary": summary,
+            "raw_content": line.strip()[:2000],
+            "md5": None,
+            "sha1": None,
+            "sha256": None,
+            "metadata": {
+                "event_type": event_type,
+                "detail": detail,
+                "severity_hint": severity_hint,
+                "detector": self.detector_name,
+            },
+            "ingested_at": datetime.now(timezone.utc),
         }

@@ -1,92 +1,107 @@
-#
-#   Crafted On Wed Jan 07 2026
-#   From his finger tips, through his IDE to your deployment environment at full throttle with no bugs, loss of data,
-#   fluctuations, signal interference, or doubt—it can only be
-#   the legendary coding wizard, Martin Mbithi (martin@devlan.co.ke, www.martmbithi.github.io)
-#   
-#   www.devlan.co.ke
-#   hello@devlan.co.ke
-#
-#
-#   The Devlan Solutions LTD Super Duper User License Agreement
-#   Copyright (c) 2022 Devlan Solutions LTD
-#
-#
-#   1. LICENSE TO BE AWESOME
-#   Congrats, you lucky human! Devlan Solutions LTD hereby bestows upon you the magical,
-#   revocable, personal, non-exclusive, and totally non-transferable right to install this epic system
-#   on not one, but TWO separate computers for your personal, non-commercial shenanigans.
-#   Unless, of course, you've leveled up with a commercial license from Devlan Solutions LTD.
-#   Sharing this software with others or letting them even peek at it? Nope, that's a big no-no.
-#   And don't even think about putting this on a network or letting a crowd join the fun unless you
-#   first scored a multi-user license from us. Sharing is caring, but rules are rules!
-#
-#   2. COPYRIGHT POWER-UP
-#   This Software is the prized possession of Devlan Solutions LTD and is shielded by copyright law
-#   and the forces of international copyright treaties. You better not try to hide or mess with
-#   any of our awesome proprietary notices, labels, or marks. Respect the swag!
-#
-#
-#   3. RESTRICTIONS, NO CHEAT CODES ALLOWED
-#   You may not, and you shall not let anyone else:
-#   (a) reverse engineer, decompile, decode, decrypt, disassemble, or do any sneaky stuff to
-#   figure out the source code of this software;
-#   (b) modify, remix, distribute, or create your own funky version of this masterpiece;
-#   (c) copy (except for that one precious backup), distribute, show off in public, transmit, sell, rent,
-#   lease, or otherwise exploit the Software like it's your own.
-#
-#
-#   4. THE ENDGAME
-#   This License lasts until one of us says 'Game Over'. You can call it quits anytime by
-#   destroying the Software and all the copies you made (no hiding them under your bed).
-#   If you break any of these sacred rules, this License self-destructs, and you must obliterate
-#   every copy of the Software, no questions asked.
-#
-#
-#   5. NO GUARANTEES, JUST PIXELS
-#   DEVLAN SOLUTIONS LTD doesn’t guarantee this Software is flawless—it might have a few
-#   quirks, but who doesn’t? DEVLAN SOLUTIONS LTD washes its hands of any other warranties,
-#   implied or otherwise. That means no promises of perfect performance, marketability, or
-#   non-infringement. Some places have different rules, so you might have extra rights, but don’t
-#   count on us for backup if things go sideways. Use at your own risk, brave adventurer!
-#
-#
-#   6. SEVERABILITY—KEEP THE GOOD STUFF
-#   If any part of this License gets tossed out by a judge, don’t worry—the rest of the agreement
-#   still stands like a boss. Just because one piece fails doesn’t mean the whole thing crumbles.
-#
-#
-#   7. NO DAMAGE, NO DRAMA
-#   Under no circumstances will Devlan Solutions LTD or its squad be held responsible for any wild,
-#   indirect, or accidental chaos that might come from using this software—even if we warned you!
-#   And if you ever think you’ve got a claim, the most you’re getting out of us is the license fee you
-#   paid—if any. No drama, no big payouts, just pixels and code.
-#
-#
+# 2:22 DFIR Framework — Behavioral Fingerprinting
+# Profiles attacker behavior patterns from triaged forensic artifacts
 
 from collections import Counter
 from datetime import datetime
 
-def behavioral_fingerprint(triaged):
+
+def behavioral_fingerprint(triaged: list[dict]) -> dict:
+    """
+    Generate a behavioral fingerprint of the observed attack activity.
+    Analyzes temporal patterns, attack velocity, tooling consistency,
+    and automation likelihood.
+    """
     times = []
     for a in triaged:
         ts = a.get("artifact_timestamp")
         if ts:
             try:
-                times.append(datetime.fromisoformat(str(ts)))
-            except Exception:
+                if isinstance(ts, str):
+                    ts = datetime.fromisoformat(str(ts))
+                times.append(ts)
+            except (ValueError, TypeError):
                 pass
 
     hours = [t.hour for t in times]
-    velocity = "high" if len(triaged) > 100 else "medium" if len(triaged) > 20 else "low"
-    pattern = "night-heavy" if any(h < 6 or h > 22 for h in hours) else "business-hours"
+    days = [t.strftime("%A") for t in times]
 
-    summaries = Counter(a.get("content_summary") for a in triaged)
-    tooling = "high" if summaries and max(summaries.values()) > 20 else "medium" if summaries and max(summaries.values()) > 5 else "low"
+    # ── Attack Velocity ─────────────────────────────────────────
+    total = len(triaged)
+    if total > 500:
+        velocity = "critical"
+    elif total > 100:
+        velocity = "high"
+    elif total > 20:
+        velocity = "medium"
+    else:
+        velocity = "low"
+
+    # ── Temporal Pattern ────────────────────────────────────────
+    if hours:
+        night_count = sum(1 for h in hours if h < 6 or h >= 22)
+        business_count = sum(1 for h in hours if 8 <= h <= 17)
+        night_ratio = night_count / len(hours) if hours else 0
+        business_ratio = business_count / len(hours) if hours else 0
+
+        if night_ratio > 0.5:
+            time_pattern = "off-hours-dominant"
+        elif business_ratio > 0.7:
+            time_pattern = "business-hours"
+        else:
+            time_pattern = "distributed"
+    else:
+        time_pattern = "unknown"
+
+    # ── Peak Activity ───────────────────────────────────────────
+    peak_hour = Counter(hours).most_common(1)[0] if hours else (None, 0)
+    peak_day = Counter(days).most_common(1)[0] if days else (None, 0)
+
+    # ── Tooling Consistency ─────────────────────────────────────
+    summaries = Counter(a.get("content_summary", "")[:60] for a in triaged)
+    max_repeat = max(summaries.values()) if summaries else 0
+    unique_ratio = len(summaries) / max(total, 1)
+
+    if max_repeat > 50 or unique_ratio < 0.1:
+        tooling = "highly-automated"
+    elif max_repeat > 10 or unique_ratio < 0.3:
+        tooling = "semi-automated"
+    else:
+        tooling = "manual-or-varied"
+
+    # ── Automation Likelihood ───────────────────────────────────
+    if velocity in ("critical", "high") and tooling == "highly-automated":
+        automation = "high"
+    elif velocity == "medium" or tooling == "semi-automated":
+        automation = "medium"
+    else:
+        automation = "low"
+
+    # ── Time Span ───────────────────────────────────────────────
+    time_span_hours = None
+    if len(times) >= 2:
+        sorted_times = sorted(times)
+        delta = sorted_times[-1] - sorted_times[0]
+        time_span_hours = round(delta.total_seconds() / 3600, 2)
+
+    # ── Attack Diversity ────────────────────────────────────────
+    artifact_types = Counter(a.get("artifact_type") for a in triaged)
+    attack_types = set()
+    for a in triaged:
+        meta = a.get("metadata") or {}
+        for at in meta.get("attack_types", []):
+            attack_types.add(at)
 
     return {
+        "total_artifacts": total,
         "attack_velocity": velocity,
-        "time_pattern": pattern,
+        "time_pattern": time_pattern,
+        "peak_activity_hour": peak_hour[0],
+        "peak_activity_day": peak_day[0],
         "tooling_consistency": tooling,
-        "automation_likelihood": "high" if velocity=="high" and tooling!="low" else "medium"
+        "automation_likelihood": automation,
+        "time_span_hours": time_span_hours,
+        "unique_event_ratio": round(unique_ratio, 3),
+        "artifact_type_distribution": dict(artifact_types.most_common()),
+        "distinct_attack_types": sorted(attack_types),
+        "distinct_attack_count": len(attack_types),
     }

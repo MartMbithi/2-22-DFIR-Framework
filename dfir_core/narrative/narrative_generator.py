@@ -1,109 +1,140 @@
-#
-#   Crafted On Sun Jan 11 2026
-#   From his finger tips, through his IDE to your deployment environment at full throttle with no bugs, loss of data,
-#   fluctuations, signal interference, or doubt—it can only be
-#   the legendary coding wizard, Martin Mbithi (martin@devlan.co.ke, www.martmbithi.github.io)
-#   
-#   www.devlan.co.ke
-#   hello@devlan.co.ke
-#
-#
-#   The Devlan Solutions LTD Super Duper User License Agreement
-#   Copyright (c) 2022 Devlan Solutions LTD
-#
-#
-#   1. LICENSE TO BE AWESOME
-#   Congrats, you lucky human! Devlan Solutions LTD hereby bestows upon you the magical,
-#   revocable, personal, non-exclusive, and totally non-transferable right to install this epic system
-#   on not one, but TWO separate computers for your personal, non-commercial shenanigans.
-#   Unless, of course, you've leveled up with a commercial license from Devlan Solutions LTD.
-#   Sharing this software with others or letting them even peek at it? Nope, that's a big no-no.
-#   And don't even think about putting this on a network or letting a crowd join the fun unless you
-#   first scored a multi-user license from us. Sharing is caring, but rules are rules!
-#
-#   2. COPYRIGHT POWER-UP
-#   This Software is the prized possession of Devlan Solutions LTD and is shielded by copyright law
-#   and the forces of international copyright treaties. You better not try to hide or mess with
-#   any of our awesome proprietary notices, labels, or marks. Respect the swag!
-#
-#
-#   3. RESTRICTIONS, NO CHEAT CODES ALLOWED
-#   You may not, and you shall not let anyone else:
-#   (a) reverse engineer, decompile, decode, decrypt, disassemble, or do any sneaky stuff to
-#   figure out the source code of this software;
-#   (b) modify, remix, distribute, or create your own funky version of this masterpiece;
-#   (c) copy (except for that one precious backup), distribute, show off in public, transmit, sell, rent,
-#   lease, or otherwise exploit the Software like it's your own.
-#
-#
-#   4. THE ENDGAME
-#   This License lasts until one of us says 'Game Over'. You can call it quits anytime by
-#   destroying the Software and all the copies you made (no hiding them under your bed).
-#   If you break any of these sacred rules, this License self-destructs, and you must obliterate
-#   every copy of the Software, no questions asked.
-#
-#
-#   5. NO GUARANTEES, JUST PIXELS
-#   DEVLAN SOLUTIONS LTD doesn’t guarantee this Software is flawless—it might have a few
-#   quirks, but who doesn’t? DEVLAN SOLUTIONS LTD washes its hands of any other warranties,
-#   implied or otherwise. That means no promises of perfect performance, marketability, or
-#   non-infringement. Some places have different rules, so you might have extra rights, but don’t
-#   count on us for backup if things go sideways. Use at your own risk, brave adventurer!
-#
-#
-#   6. SEVERABILITY—KEEP THE GOOD STUFF
-#   If any part of this License gets tossed out by a judge, don’t worry—the rest of the agreement
-#   still stands like a boss. Just because one piece fails doesn’t mean the whole thing crumbles.
-#
-#
-#   7. NO DAMAGE, NO DRAMA
-#   Under no circumstances will Devlan Solutions LTD or its squad be held responsible for any wild,
-#   indirect, or accidental chaos that might come from using this software—even if we warned you!
-#   And if you ever think you’ve got a claim, the most you’re getting out of us is the license fee you
-#   paid—if any. No drama, no big payouts, just pixels and code.
-#
-#
+# 2:22 DFIR Framework — Narrative Generator
+# Generates forensic investigation narratives using LLM or deterministic templates
+# The deterministic mode ensures reproducibility when LLM is unavailable
+
+import time
+from collections import Counter
 
 from narrative_llm.openai_client import OpenAILLMClient
 from narrative.batching import chunk_artifacts, build_batch_prompt
-from tqdm import tqdm
-import time
+from narrative.narrative_templates import SYNTHESIS_TEMPLATE, DETERMINISTIC_NARRATIVE_TEMPLATE
+from narrative.narrative_config import RATE_LIMIT_DELAY
 
 
 class NarrativeGenerator:
     def __init__(self):
         self.llm_client = OpenAILLMClient()
 
-    def GenerateBatched(self, triaged, batch_size=25):
+    def GenerateBatched(self, triaged: list[dict], batch_size: int = 25) -> list[str]:
+        """Generate narrative summaries in batches via LLM."""
         batches = list(chunk_artifacts(triaged, batch_size))
         narratives = []
 
-        with tqdm(
-            total=len(batches),
-            desc="Generating narrative batches",
-            unit="batch"
-        ) as pbar:
-            for idx, batch in enumerate(batches, start=1):
-                prompt = build_batch_prompt(batch, idx, len(batches))
-                narratives.append(self.llm_client.generate(prompt))
-                pbar.update(1)
-                time.sleep(1.5)  # rate-limit safety
+        for idx, batch in enumerate(batches, start=1):
+            prompt = build_batch_prompt(batch, idx, len(batches))
+            result = self.llm_client.generate(prompt)
+            narratives.append(result)
+            if idx < len(batches):
+                time.sleep(RATE_LIMIT_DELAY)
 
         return narratives
 
-    def Synthesize(self, batch_narratives):
-        print("[*] Synthesizing final narrative...")
-        combined = "\n\n".join(batch_narratives)
+    def Synthesize(self, batch_narratives: list[str]) -> str:
+        """Synthesize batch narratives into a cohesive summary via LLM."""
+        combined = "\n\n---\n\n".join(batch_narratives)
+        prompt = SYNTHESIS_TEMPLATE.format(combined=combined)
+        return self.llm_client.generate(prompt)
 
-        synthesis_prompt = f"""
-You are a senior digital forensic analyst.
+    def GenerateDeterministic(
+        self,
+        triaged: list[dict],
+        intel: dict,
+    ) -> str:
+        """
+        Generate a fully deterministic narrative without LLM.
+        Ensures reproducibility and works offline.
+        """
+        total = len(triaged)
+        severity = intel.get("overall_severity", "UNKNOWN")
+        max_score = intel.get("max_triage_score", 0)
+        fingerprint = intel.get("behavioral_fingerprint", {})
 
-Combine the following sectioned forensic summaries into a single cohesive narrative.
-Do NOT speculate.
-Do NOT attribute.
-Maintain professional DFIR tone.
+        # Active channels
+        active = intel.get("active_channels", [])
+        active_str = ", ".join(active) if active else "None identified"
 
-Summaries:
-{combined}
-"""
-        return self.llm_client.generate(synthesis_prompt)
+        # Technique count
+        tech_count = intel.get("mitre_technique_count", 0)
+
+        # Kill chain coverage
+        kc_coverage = intel.get("kill_chain_coverage", 0)
+
+        # Artifact distribution
+        type_dist = fingerprint.get("artifact_type_distribution", {})
+        dist_lines = []
+        for atype, count in sorted(type_dist.items(), key=lambda x: -x[1]):
+            pct = (count / max(total, 1)) * 100
+            dist_lines.append(f"  - {atype}: {count} artifacts ({pct:.1f}%)")
+        artifact_distribution = "\n".join(dist_lines) if dist_lines else "  No artifact type data available."
+
+        # Temporal analysis
+        timeline = intel.get("timeline", {})
+        if timeline:
+            temporal_analysis = (
+                f"The investigation spans from {timeline.get('earliest_event', 'N/A')} "
+                f"to {timeline.get('latest_event', 'N/A')} "
+                f"({timeline.get('span_hours', 'N/A')} hours). "
+                f"Peak activity was observed at hour {fingerprint.get('peak_activity_hour', 'N/A')} "
+                f"on {fingerprint.get('peak_activity_day', 'N/A')}."
+            )
+        else:
+            temporal_analysis = "Temporal data insufficient for timeline analysis."
+
+        # Channel analysis
+        channels = intel.get("attack_channels", {})
+        channel_evidence = intel.get("channel_evidence", {})
+        channel_lines = []
+        for ch, is_active in channels.items():
+            if is_active:
+                evidence = channel_evidence.get(ch, [])
+                ev_str = ", ".join(evidence[:5]) if evidence else "pattern match"
+                channel_lines.append(f"  - {ch.replace('_', ' ').title()}: Active (evidence: {ev_str})")
+        channel_analysis = "\n".join(channel_lines) if channel_lines else "  No attack channels identified."
+
+        # IoC summary
+        top_ips = intel.get("top_source_ips", [])
+        ioc_lines = []
+        for ip_info in top_ips[:10]:
+            attacks = ", ".join(ip_info.get("attack_types", [])) or "general"
+            ioc_lines.append(
+                f"  - IP {ip_info['ip']}: {ip_info['event_count']} events ({attacks})"
+            )
+        ioc_summary = "\n".join(ioc_lines) if ioc_lines else "  No significant IoCs extracted."
+
+        # Conclusion detail
+        if severity in ("CRITICAL", "HIGH"):
+            conclusion_detail = (
+                "The evidence indicates significant malicious activity targeting "
+                "county government information systems. Immediate incident response "
+                "actions are recommended, including network containment, credential "
+                "rotation, and comprehensive system audit."
+            )
+        elif severity == "MEDIUM":
+            conclusion_detail = (
+                "The evidence suggests suspicious activity that warrants further "
+                "investigation. Recommended actions include enhanced monitoring, "
+                "log review expansion, and security posture assessment."
+            )
+        else:
+            conclusion_detail = (
+                "The observed activity is within expected operational parameters "
+                "with minor anomalies. Continued monitoring is recommended."
+            )
+
+        return DETERMINISTIC_NARRATIVE_TEMPLATE.format(
+            total_artifacts=total,
+            severity=severity,
+            max_score=f"{max_score:.4f}",
+            active_channels=active_str,
+            technique_count=tech_count,
+            kill_chain_coverage=kc_coverage,
+            artifact_distribution=artifact_distribution,
+            temporal_analysis=temporal_analysis,
+            channel_analysis=channel_analysis,
+            ioc_summary=ioc_summary,
+            velocity=fingerprint.get("attack_velocity", "N/A"),
+            time_pattern=fingerprint.get("time_pattern", "N/A"),
+            tooling=fingerprint.get("tooling_consistency", "N/A"),
+            automation=fingerprint.get("automation_likelihood", "N/A"),
+            conclusion_detail=conclusion_detail,
+        )

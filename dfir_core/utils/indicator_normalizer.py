@@ -1,99 +1,172 @@
-#
-#   Crafted On Wed Jan 07 2026
-#   From his finger tips, through his IDE to your deployment environment at full throttle with no bugs, loss of data,
-#   fluctuations, signal interference, or doubt—it can only be
-#   the legendary coding wizard, Martin Mbithi (martin@devlan.co.ke, www.martmbithi.github.io)
-#
-#   www.devlan.co.ke
-#   hello@devlan.co.ke
-#
-#
-#   The Devlan Solutions LTD Super Duper User License Agreement
-#   Copyright (c) 2022 Devlan Solutions LTD
-#
-#
-#   1. LICENSE TO BE AWESOME
-#   Congrats, you lucky human! Devlan Solutions LTD hereby bestows upon you the magical,
-#   revocable, personal, non-exclusive, and totally non-transferable right to install this epic system
-#   on not one, but TWO separate computers for your personal, non-commercial shenanigans.
-#   Unless, of course, you've leveled up with a commercial license from Devlan Solutions LTD.
-#   Sharing this software with others or letting them even peek at it? Nope, that's a big no-no.
-#   And don't even think about putting this on a network or letting a crowd join the fun unless you
-#   first scored a multi-user license from us. Sharing is caring, but rules are rules!
-#
-#   2. COPYRIGHT POWER-UP
-#   This Software is the prized possession of Devlan Solutions LTD and is shielded by copyright law
-#   and the forces of international copyright treaties. You better not try to hide or mess with
-#   any of our awesome proprietary notices, labels, or marks. Respect the swag!
-#
-#
-#   3. RESTRICTIONS, NO CHEAT CODES ALLOWED
-#   You may not, and you shall not let anyone else:
-#   (a) reverse engineer, decompile, decode, decrypt, disassemble, or do any sneaky stuff to
-#   figure out the source code of this software;
-#   (b) modify, remix, distribute, or create your own funky version of this masterpiece;
-#   (c) copy (except for that one precious backup), distribute, show off in public, transmit, sell, rent,
-#   lease, or otherwise exploit the Software like it's your own.
-#
-#
-#   4. THE ENDGAME
-#   This License lasts until one of us says 'Game Over'. You can call it quits anytime by
-#   destroying the Software and all the copies you made (no hiding them under your bed).
-#   If you break any of these sacred rules, this License self-destructs, and you must obliterate
-#   every copy of the Software, no questions asked.
-#
-#
-#   5. NO GUARANTEES, JUST PIXELS
-#   DEVLAN SOLUTIONS LTD doesn’t guarantee this Software is flawless—it might have a few
-#   quirks, but who doesn’t? DEVLAN SOLUTIONS LTD washes its hands of any other warranties,
-#   implied or otherwise. That means no promises of perfect performance, marketability, or
-#   non-infringement. Some places have different rules, so you might have extra rights, but don’t
-#   count on us for backup if things go sideways. Use at your own risk, brave adventurer!
-#
-#
-#   6. SEVERABILITY—KEEP THE GOOD STUFF
-#   If any part of this License gets tossed out by a judge, don’t worry—the rest of the agreement
-#   still stands like a boss. Just because one piece fails doesn’t mean the whole thing crumbles.
-#
-#
-#   7. NO DAMAGE, NO DRAMA
-#   Under no circumstances will Devlan Solutions LTD or its squad be held responsible for any wild,
-#   indirect, or accidental chaos that might come from using this software—even if we warned you!
-#   And if you ever think you’ve got a claim, the most you’re getting out of us is the license fee you
-#   paid—if any. No drama, no big payouts, just pixels and code.
-#
-#
+# 2:22 DFIR Framework — Indicator Normalizer & Enricher
+# Extracts and normalizes Indicators of Compromise from raw artifact content
 
 import base64
+import hashlib
 import re
+from typing import Any
+
+# ─── Regex Patterns ─────────────────────────────────────────────────
+IPV4_PATTERN = re.compile(r"\b(\d{1,3}(?:\.\d{1,3}){3})\b")
+IPV4_PORT_PATTERN = re.compile(r"\b(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5})\b")
+URL_PATTERN = re.compile(
+    r"https?://[^\s\"'<>\])+]+", re.IGNORECASE
+)
+EMAIL_PATTERN = re.compile(
+    r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
+)
+DOMAIN_PATTERN = re.compile(
+    r"\b(?:[a-zA-Z0-9-]+\.)+(?:com|org|net|edu|gov|ke|co\.ke|go\.ke|"
+    r"io|info|biz|xyz|ru|cn|tk|ml|ga|cf)\b",
+    re.IGNORECASE,
+)
+MD5_PATTERN = re.compile(r"\b[a-fA-F0-9]{32}\b")
+SHA1_PATTERN = re.compile(r"\b[a-fA-F0-9]{40}\b")
+SHA256_PATTERN = re.compile(r"\b[a-fA-F0-9]{64}\b")
+BASE64_PATTERN = re.compile(
+    r"(?:[A-Za-z0-9+/]{4}){8,}(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?"
+)
+USER_AGENT_PATTERN = re.compile(r'"([^"]*(?:Mozilla|curl|wget|python|Go-http)[^"]*)"', re.IGNORECASE)
+
+# ─── Private network ranges ────────────────────────────────────────
+PRIVATE_RANGES = [
+    re.compile(r"^10\."),
+    re.compile(r"^172\.(1[6-9]|2\d|3[01])\."),
+    re.compile(r"^192\.168\."),
+    re.compile(r"^127\."),
+    re.compile(r"^0\."),
+]
 
 
-def _try_base64(token):
-    try:
-        decoded = base64.b64decode(token).decode("utf-8")
-        return decoded
-    except Exception:
+def is_private_ip(ip: str) -> bool:
+    return any(p.match(ip) for p in PRIVATE_RANGES)
+
+
+def _try_base64_decode(token: str) -> str | None:
+    if len(token) < 12:
         return None
+    try:
+        decoded = base64.b64decode(token, validate=True).decode("utf-8", errors="strict")
+        if decoded.isprintable() and len(decoded) >= 4:
+            return decoded
+    except Exception:
+        pass
+    return None
 
 
-def NormalizeIndicators(artifact):
+def compute_content_hash(content: str) -> str:
+    return hashlib.sha256(content.encode("utf-8", errors="replace")).hexdigest()
+
+
+def NormalizeIndicators(artifact: dict[str, Any]) -> dict[str, Any]:
+    """
+    Enriches an artifact dict with extracted IoCs from its raw_content.
+    Returns a copy with metadata.indicators and metadata.interpretation populated.
+    """
     enriched = artifact.copy()
-    interpretations = []
-
     raw = artifact.get("raw_content") or ""
+    summary = artifact.get("content_summary") or ""
+    combined = f"{raw} {summary}"
 
-    for t in raw.split():
-        decoded = _try_base64(t)
+    indicators: dict[str, list] = {
+        "source_ips": [],
+        "destination_ips": [],
+        "ip_port_pairs": [],
+        "urls": [],
+        "domains": [],
+        "emails": [],
+        "hashes_md5": [],
+        "hashes_sha1": [],
+        "hashes_sha256": [],
+        "decoded_payloads": [],
+        "user_agents": [],
+    }
+    interpretations: list[str] = []
+
+    # ── IP:Port extraction ──────────────────────────────────────
+    for match in IPV4_PORT_PATTERN.finditer(combined):
+        ip, port = match.group(1), match.group(2)
+        pair = f"{ip}:{port}"
+        if pair not in indicators["ip_port_pairs"]:
+            indicators["ip_port_pairs"].append(pair)
+            locality = "internal" if is_private_ip(ip) else "external"
+            interpretations.append(
+                f"Network connection to {locality} IP {ip} on port {port}"
+            )
+
+    # ── Standalone IPs ──────────────────────────────────────────
+    for match in IPV4_PATTERN.finditer(combined):
+        ip = match.group(1)
+        if ip not in indicators["source_ips"]:
+            indicators["source_ips"].append(ip)
+
+    # ── URLs ────────────────────────────────────────────────────
+    for match in URL_PATTERN.finditer(combined):
+        url = match.group(0).rstrip(".,;)")
+        if url not in indicators["urls"]:
+            indicators["urls"].append(url)
+            interpretations.append(f"URL reference observed: {url}")
+
+    # ── Domains ─────────────────────────────────────────────────
+    for match in DOMAIN_PATTERN.finditer(combined):
+        domain = match.group(0).lower()
+        if domain not in indicators["domains"]:
+            indicators["domains"].append(domain)
+
+    # ── Emails ──────────────────────────────────────────────────
+    for match in EMAIL_PATTERN.finditer(combined):
+        email = match.group(0).lower()
+        if email not in indicators["emails"]:
+            indicators["emails"].append(email)
+            interpretations.append(f"Email address observed: {email}")
+
+    # ── Hash values ─────────────────────────────────────────────
+    for match in SHA256_PATTERN.finditer(combined):
+        h = match.group(0).lower()
+        if h not in indicators["hashes_sha256"]:
+            indicators["hashes_sha256"].append(h)
+
+    for match in SHA1_PATTERN.finditer(combined):
+        h = match.group(0).lower()
+        if h not in indicators["hashes_sha1"] and h not in [
+            x[:40] for x in indicators["hashes_sha256"]
+        ]:
+            indicators["hashes_sha1"].append(h)
+
+    for match in MD5_PATTERN.finditer(combined):
+        h = match.group(0).lower()
+        if h not in indicators["hashes_md5"]:
+            indicators["hashes_md5"].append(h)
+
+    # ── Base64 decoding ─────────────────────────────────────────
+    for match in BASE64_PATTERN.finditer(raw):
+        token = match.group(0)
+        decoded = _try_base64_decode(token)
         if decoded:
-            interpretations.append(f"Decoded base64 content: {decoded}")
-            break
+            indicators["decoded_payloads"].append(decoded[:500])
+            interpretations.append(
+                f"Decoded base64 payload: {decoded[:120]}..."
+                if len(decoded) > 120 else f"Decoded base64 payload: {decoded}"
+            )
 
-    match = re.search(r"(\d+\.\d+\.\d+\.\d+):(\d+)", raw)
-    if match:
-        ip, port = match.groups()
-        interpretations.append(f"Network connection to IP {ip} on port {port}")
+    # ── User agents ─────────────────────────────────────────────
+    for match in USER_AGENT_PATTERN.finditer(raw):
+        ua = match.group(1)
+        if ua not in indicators["user_agents"]:
+            indicators["user_agents"].append(ua)
 
-    if interpretations:
-        enriched["metadata"] = {"interpretation": interpretations}
+    # ── Content hash for integrity ──────────────────────────────
+    if raw:
+        enriched["content_hash"] = compute_content_hash(raw)
+
+    # ── Pack metadata ───────────────────────────────────────────
+    existing_meta = enriched.get("metadata") or {}
+    if isinstance(existing_meta, str):
+        existing_meta = {}
+    existing_meta["indicators"] = {
+        k: v for k, v in indicators.items() if v
+    }
+    existing_meta["interpretation"] = interpretations
+    enriched["metadata"] = existing_meta
 
     return enriched

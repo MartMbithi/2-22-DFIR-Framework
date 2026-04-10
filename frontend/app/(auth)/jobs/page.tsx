@@ -1,358 +1,100 @@
 'use client';
-
-/*
- * 2:22 DFIR — Analysis Jobs Control Plane
- */
-
-import { useEffect, useMemo, useState } from 'react';
-import AuthGuard from '@/components/AuthGuard';
-import AppSidebar from '@/components/AppSidebar';
-import AppTopBar from '@/components/AppTopBar';
+import { useEffect, useState } from 'react';
+import DashboardLayout from '@/app/dashboard-layout';
 import { apiFetch } from '@/lib/api';
-
-/* ================= TYPES ================= */
+import { HudArrows } from '@/components/Nav';
 
 type Job = {
-    job_id: string;
-    case_id: string;
-    job_status: 'queued' | 'running' | 'completed' | 'failed';
-    created_at: string;
-    job_progress?: string;
-    job_stage?: string;
+    job_id: string; case_id: string; job_type: string; job_status: string;
+    job_stage: string | null; job_progress_percent: number;
+    job_progress: string | null; job_error: string | null;
+    created_at: string; started_at: string | null; completed_at: string | null;
 };
-
-type Case = {
-    case_id: string;
-    case_name: string;
-};
-
-/* ================= CONFIG ================= */
-
-const POLL_INTERVAL = 4000;
-
-/* ================= PAGE ================= */
 
 export default function JobsPage() {
-
-    const [cases, setCases] = useState<Case[]>([]);
-    const [caseSearch, setCaseSearch] = useState('');
-    const [selectedCase, setSelectedCase] = useState('');
-
     const [jobs, setJobs] = useState<Job[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [expanded, setExpanded] = useState<string | null>(null);
 
-    const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
-
-    /* ================= LOAD CASES ================= */
-
+    async function load() { try { setJobs(await apiFetch('/jobs/')); } catch { } setLoading(false); }
+    useEffect(() => { load(); }, []);
     useEffect(() => {
-        apiFetch('/cases/').then(setCases);
+        const iv = setInterval(load, 4000);
+        return () => clearInterval(iv);
     }, []);
 
-    /* ================= LOAD JOBS ================= */
-
-    async function loadJobs(case_id: string) {
-
-        if (!case_id) {
-            setJobs([]);
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-            const allJobs = await apiFetch('/jobs/');
-
-            const caseJobs = allJobs.filter((j: Job) => j.case_id === case_id);
-
-            /* ===== ENRICH WITH PROGRESS + STAGE ===== */
-
-            const enriched = await Promise.all(
-                caseJobs.map(async (j: Job) => {
-                    try {
-                        const progress = await apiFetch(`/jobs/${j.job_id}/progress`);
-                        const stage = await apiFetch(`/jobs/${j.job_id}/stages`);
-
-                        return {
-                            ...j,
-                            job_progress: progress?.progress,
-                            job_stage: stage?.current_stage
-                        };
-                    } catch {
-                        return j;
-                    }
-                })
-            );
-
-            setJobs(enriched);
-
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    useEffect(() => {
-        loadJobs(selectedCase);
-    }, [selectedCase]);
-
-    /* ================= POLLING ================= */
-
-    useEffect(() => {
-
-        if (!selectedCase) return;
-
-        const interval = setInterval(() => {
-            loadJobs(selectedCase);
-        }, POLL_INTERVAL);
-
-        return () => clearInterval(interval);
-
-    }, [selectedCase]);
-
-    /* ================= CASE SEARCH ================= */
-
-    const filteredCases = useMemo(() => {
-
-        return cases.filter(c =>
-            c.case_name.toLowerCase().includes(caseSearch.toLowerCase())
-        );
-
-    }, [cases, caseSearch]);
-
-    /* ================= FILTER JOBS ================= */
-
-    const filteredJobs = useMemo(() => {
-
-        return jobs.filter(j => {
-
-            const matchesSearch =
-                j.job_id.toLowerCase().includes(search.toLowerCase());
-
-            const matchesStatus =
-                statusFilter ? j.job_status === statusFilter : true;
-
-            return matchesSearch && matchesStatus;
-
-        });
-
-    }, [jobs, search, statusFilter]);
-
-    /* ================= UI ================= */
+    const statusColor = (s: string) =>
+        s === 'completed' ? 'bg-success' : s === 'running' ? 'bg-warning text-dark' : s === 'failed' ? 'bg-danger' : s === 'queued' ? 'bg-info text-dark' : 'bg-secondary';
 
     return (
-
-        <AuthGuard>
-
-            <div id="app" className="app app-sidebar-fixed">
-
-                <AppSidebar />
-                <AppTopBar />
-
-                <div id="content" className="app-content">
-
-                    <div className="container-fluid">
-
-                        {/* HEADER */}
-
-                        <div className="row mb-4">
-                            <div className="col">
-                                <h1>Analysis Jobs</h1>
-                                <p className="text-body text-opacity-75 small">
-                                    DFIR execution pipeline monitoring and control
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* CASE SELECTOR */}
-
-                        <div className="card mb-3">
-                            <div className="card-body">
-
-                                <input
-                                    className="form-control form-control-sm mb-2"
-                                    placeholder="Search case..."
-                                    value={caseSearch}
-                                    onChange={e => setCaseSearch(e.target.value)}
-                                />
-
-                                <select
-                                    className="form-select form-select-sm"
-                                    value={selectedCase}
-                                    onChange={e => setSelectedCase(e.target.value)}
-                                >
-                                    <option value="">Select Case</option>
-
-                                    {filteredCases.map(c => (
-                                        <option key={c.case_id} value={c.case_id}>
-                                            {c.case_name}
-                                        </option>
-                                    ))}
-
-                                </select>
-
-                            </div>
-                            <HudArrows />
-                        </div>
-
-                        {/* FILTER BAR */}
-
-                        {selectedCase && (
-
-                            <div className="card mb-3">
-                                <div className="card-body d-flex gap-2 flex-wrap">
-
-                                    <input
-                                        className="form-control form-control-sm w-25"
-                                        placeholder="Search job ID..."
-                                        value={search}
-                                        onChange={e => setSearch(e.target.value)}
-                                    />
-
-                                    <select
-                                        className="form-select form-select-sm w-auto"
-                                        value={statusFilter}
-                                        onChange={e => setStatusFilter(e.target.value)}
-                                    >
-                                        <option value="">All Status</option>
-                                        <option value="queued">Queued</option>
-                                        <option value="running">Running</option>
-                                        <option value="completed">Completed</option>
-                                        <option value="failed">Failed</option>
-                                    </select>
-
-                                </div>
-                                <HudArrows />
-                            </div>
-
-                        )}
-
-                        {/* TABLE */}
-
-                        <div className="card">
-
-                            <div className="card-body">
-
-                                {!selectedCase && (
-                                    <p className="text-center text-body text-opacity-50">
-                                        Select a case to view jobs
-                                    </p>
-                                )}
-
-                                {loading && (
-                                    <p className="text-center">
-                                        Loading analysis jobs…
-                                    </p>
-                                )}
-
-                                {selectedCase && !loading && filteredJobs.length === 0 && (
-                                    <p className="text-center text-body text-opacity-50">
-                                        No jobs found for this case
-                                    </p>
-                                )}
-
-                                {selectedCase && !loading && filteredJobs.length > 0 && (
-
-                                    <div className="table-responsive">
-
-                                        <table className="table table-hover small align-middle">
-
-                                            <thead>
-                                                <tr>
-                                                    <th>Job ID</th>
-                                                    <th>Status</th>
-                                                    <th>Stage</th>
-                                                    <th>Progress</th>
-                                                    <th>Created</th>
-                                                </tr>
-                                            </thead>
-
-                                            <tbody>
-
-                                                {filteredJobs.map(j => (
-
-                                                    <tr key={j.job_id}>
-
-                                                        <td className="font-monospace text-xs">
-                                                            {j.job_id.slice(0, 10)}
-                                                        </td>
-
-                                                        <td>
-                                                            <span className={
-                                                                j.job_status === 'completed'
-                                                                    ? 'text-success'
-                                                                    : j.job_status === 'failed'
-                                                                        ? 'text-danger'
-                                                                        : j.job_status === 'queued'
-                                                                            ? 'text-primary'
-                                                                            : 'text-warning'
-                                                            }>
-                                                                {j.job_status}
-                                                            </span>
-                                                        </td>
-
-                                                        <td className="text-body text-opacity-75 small">
-                                                            {j.job_stage || '—'}
-                                                        </td>
-
-                                                        <td>
-
-                                                            {j.job_progress && (
-
-                                                                <div className="progress h-5px">
-
-                                                                    <div
-                                                                        className="progress-bar bg-theme"
-                                                                        style={{ width: j.job_progress }}
-                                                                    />
-
-                                                                </div>
-
-                                                            )}
-
-                                                        </td>
-
-                                                        <td>
-                                                            {new Date(j.created_at).toLocaleString()}
-                                                        </td>
-
-                                                    </tr>
-
-                                                ))}
-
-                                            </tbody>
-
-                                        </table>
-
-                                    </div>
-
-                                )}
-
-                            </div>
-
-                            <HudArrows />
-
-                        </div>
-
-                    </div>
-
-                </div>
-
+        <DashboardLayout>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+                <h1 className="h4 mb-0">Investigation Jobs</h1>
+                <span className="badge bg-theme">{jobs.length} total</span>
             </div>
 
-        </AuthGuard>
-    );
-}
+            {loading && <div className="text-center py-5"><div className="spinner-border text-theme" /></div>}
 
-/* ================= HUD ================= */
+            <div className="row g-3">
+                {jobs.map(j => (
+                    <div className="col-lg-6 col-12" key={j.job_id}>
+                        <div className="card h-100">
+                            <div className="card-body">
+                                <div className="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <span className={`badge ${statusColor(j.job_status)} me-2`}>{j.job_status}</span>
+                                        <span className="small text-body text-opacity-50">{j.job_type}</span>
+                                    </div>
+                                    <span className="small text-body text-opacity-50 text-nowrap">{j.job_id.slice(0, 8)}</span>
+                                </div>
 
-function HudArrows() {
-    return (
-        <div className="card-arrow">
-            <div className="card-arrow-top-left"></div>
-            <div className="card-arrow-top-right"></div>
-            <div className="card-arrow-bottom-left"></div>
-            <div className="card-arrow-bottom-right"></div>
-        </div>
+                                <div className="small mb-2">
+                                    <strong>Case:</strong> {j.case_id}
+                                </div>
+
+                                {(j.job_status === 'running' || j.job_status === 'queued') && (
+                                    <div className="mb-2">
+                                        <div className="progress" style={{ height: 6 }}>
+                                            <div className="progress-bar bg-theme progress-bar-striped progress-bar-animated"
+                                                style={{ width: `${j.job_progress_percent}%` }} />
+                                        </div>
+                                        <div className="small text-body text-opacity-50 mt-1">
+                                            {j.job_stage || 'Queued'} — {j.job_progress_percent}%
+                                            {j.job_progress && ` · ${j.job_progress}`}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="small text-body text-opacity-50">
+                                    Created: {new Date(j.created_at).toLocaleString()}
+                                    {j.completed_at && <> · Completed: {new Date(j.completed_at).toLocaleString()}</>}
+                                </div>
+
+                                {j.job_error && (
+                                    <>
+                                        <button className="btn btn-sm btn-outline-danger mt-2" onClick={() => setExpanded(expanded === j.job_id ? null : j.job_id)}>
+                                            {expanded === j.job_id ? 'Hide Error' : 'Show Error'}
+                                        </button>
+                                        {expanded === j.job_id && (
+                                            <pre className="mt-2 p-2 bg-dark text-danger small" style={{ maxHeight: 200, overflow: 'auto', fontSize: '0.7rem' }}>
+                                                {j.job_error}
+                                            </pre>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                            <HudArrows />
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {!loading && jobs.length === 0 && (
+                <div className="text-center py-5 text-body text-opacity-50">
+                    <i className="bi bi-cpu fs-1 d-block mb-2" />
+                    <p>No investigation jobs yet. Create a case and launch an investigation.</p>
+                </div>
+            )}
+        </DashboardLayout>
     );
 }

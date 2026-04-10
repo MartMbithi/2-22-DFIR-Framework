@@ -1,78 +1,96 @@
-#
-#   Crafted On Wed Jan 07 2026
-#   From his finger tips, through his IDE to your deployment environment at full throttle with no bugs, loss of data,
-#   fluctuations, signal interference, or doubt—it can only be
-#   the legendary coding wizard, Martin Mbithi (martin@devlan.co.ke, www.martmbithi.github.io)
-#   
-#   www.devlan.co.ke
-#   hello@devlan.co.ke
-#
-#
-#   The Devlan Solutions LTD Super Duper User License Agreement
-#   Copyright (c) 2022 Devlan Solutions LTD
-#
-#
-#   1. LICENSE TO BE AWESOME
-#   Congrats, you lucky human! Devlan Solutions LTD hereby bestows upon you the magical,
-#   revocable, personal, non-exclusive, and totally non-transferable right to install this epic system
-#   on not one, but TWO separate computers for your personal, non-commercial shenanigans.
-#   Unless, of course, you've leveled up with a commercial license from Devlan Solutions LTD.
-#   Sharing this software with others or letting them even peek at it? Nope, that's a big no-no.
-#   And don't even think about putting this on a network or letting a crowd join the fun unless you
-#   first scored a multi-user license from us. Sharing is caring, but rules are rules!
-#
-#   2. COPYRIGHT POWER-UP
-#   This Software is the prized possession of Devlan Solutions LTD and is shielded by copyright law
-#   and the forces of international copyright treaties. You better not try to hide or mess with
-#   any of our awesome proprietary notices, labels, or marks. Respect the swag!
-#
-#
-#   3. RESTRICTIONS, NO CHEAT CODES ALLOWED
-#   You may not, and you shall not let anyone else:
-#   (a) reverse engineer, decompile, decode, decrypt, disassemble, or do any sneaky stuff to
-#   figure out the source code of this software;
-#   (b) modify, remix, distribute, or create your own funky version of this masterpiece;
-#   (c) copy (except for that one precious backup), distribute, show off in public, transmit, sell, rent,
-#   lease, or otherwise exploit the Software like it's your own.
-#
-#
-#   4. THE ENDGAME
-#   This License lasts until one of us says 'Game Over'. You can call it quits anytime by
-#   destroying the Software and all the copies you made (no hiding them under your bed).
-#   If you break any of these sacred rules, this License self-destructs, and you must obliterate
-#   every copy of the Software, no questions asked.
-#
-#
-#   5. NO GUARANTEES, JUST PIXELS
-#   DEVLAN SOLUTIONS LTD doesn’t guarantee this Software is flawless—it might have a few
-#   quirks, but who doesn’t? DEVLAN SOLUTIONS LTD washes its hands of any other warranties,
-#   implied or otherwise. That means no promises of perfect performance, marketability, or
-#   non-infringement. Some places have different rules, so you might have extra rights, but don’t
-#   count on us for backup if things go sideways. Use at your own risk, brave adventurer!
-#
-#
-#   6. SEVERABILITY—KEEP THE GOOD STUFF
-#   If any part of this License gets tossed out by a judge, don’t worry—the rest of the agreement
-#   still stands like a boss. Just because one piece fails doesn’t mean the whole thing crumbles.
-#
-#
-#   7. NO DAMAGE, NO DRAMA
-#   Under no circumstances will Devlan Solutions LTD or its squad be held responsible for any wild,
-#   indirect, or accidental chaos that might come from using this software—even if we warned you!
-#   And if you ever think you’ve got a claim, the most you’re getting out of us is the license fee you
-#   paid—if any. No drama, no big payouts, just pixels and code.
-#
-#
+# 2:22 DFIR Framework — Process Execution Detector
+# Detects suspicious process execution, command interpreters, and scheduled tasks
 
+import re
 import uuid
 from datetime import datetime, timezone
 from .base_detector import BaseDetector
 
-class ProcessDetector(BaseDetector):
-    def matches(self, line):
-        return "exec" in line.lower() or "process" in line.lower()
+SUSPICIOUS_COMMANDS = {
+    "POWERSHELL_EXEC": [
+        re.compile(r"powershell(?:\.exe)?(?:\s+-\w+)*", re.I),
+        re.compile(r"pwsh(?:\.exe)?", re.I),
+    ],
+    "CMD_EXEC": [
+        re.compile(r"cmd(?:\.exe)?\s+/[ckr]", re.I),
+    ],
+    "SHELL_EXEC": [
+        re.compile(r"(?:/bin/)?(?:ba)?sh\s+-[ci]", re.I),
+        re.compile(r"exec\s+\d+<>/dev/tcp/", re.I),
+    ],
+    "CREDENTIAL_DUMP": [
+        re.compile(r"mimikatz|sekurlsa|lsadump|lazagne|secretsdump", re.I),
+        re.compile(r"procdump.*lsass", re.I),
+        re.compile(r"comsvcs\.dll.*MiniDump", re.I),
+    ],
+    "SCHEDULED_TASK": [
+        re.compile(r"schtasks\s+/create", re.I),
+        re.compile(r"at\s+\d{1,2}:\d{2}", re.I),
+        re.compile(r"crontab\s+-[el]", re.I),
+    ],
+    "RECON_COMMAND": [
+        re.compile(r"whoami|systeminfo|ipconfig|ifconfig|hostname|uname\s+-a", re.I),
+        re.compile(r"net\s+(?:user|localgroup|group|share|session)", re.I),
+        re.compile(r"tasklist|ps\s+aux|top\s+-b", re.I),
+    ],
+    "DOWNLOAD_EXEC": [
+        re.compile(r"wget\s+https?://", re.I),
+        re.compile(r"curl\s+.*https?://", re.I),
+        re.compile(r"certutil\s+.*-urlcache", re.I),
+        re.compile(r"bitsadmin\s+/transfer", re.I),
+    ],
+    "PERSISTENCE": [
+        re.compile(r"reg\s+add.*\\Run", re.I),
+        re.compile(r"sc\s+create", re.I),
+        re.compile(r"systemctl\s+enable", re.I),
+    ],
+}
 
-    def parse(self, line, context):
+
+class ProcessDetector(BaseDetector):
+    """Detects suspicious process execution and command interpreter usage."""
+
+    def matches(self, line: str) -> bool:
+        lower = line.lower()
+        return any(kw in lower for kw in [
+            "exec", "process", "command", "powershell", "cmd.exe",
+            "bash", "/bin/sh", "python", "perl", "ruby",
+            "schtasks", "crontab", "at ", "wscript", "cscript",
+            "mshta", "regsvr32", "rundll32", "certutil",
+            "wget", "curl", "mimikatz", "procdump",
+        ]) or "COMMAND=" in line
+
+    def parse(self, line: str, context: dict) -> dict:
+        event_type = "PROCESS_EXECUTION"
+        matched_command = None
+
+        for etype, patterns in SUSPICIOUS_COMMANDS.items():
+            for pat in patterns:
+                m = pat.search(line)
+                if m:
+                    event_type = etype
+                    matched_command = m.group(0)[:200]
+                    break
+            if event_type != "PROCESS_EXECUTION":
+                break
+
+        # Extract COMMAND= from sudo/audit logs
+        cmd_match = re.search(r"COMMAND=(.+?)(?:\s*$|\s+;)", line)
+        if cmd_match:
+            matched_command = cmd_match.group(1)[:200]
+
+        # Extract user context from sudo
+        user_match = re.search(r"(?:sudo:\s+(\S+)|USER=(\S+)|user=(\S+))", line, re.I)
+        user = None
+        if user_match:
+            user = next((g for g in user_match.groups() if g), None)
+
+        summary = f"{event_type}"
+        if matched_command:
+            summary += f": {matched_command[:100]}"
+        if user:
+            summary += f" [user={user}]"
+
         return {
             "artifact_id": str(uuid.uuid4()),
             "case_id": context["case_id"],
@@ -80,12 +98,19 @@ class ProcessDetector(BaseDetector):
             "source_tool": "auditd",
             "source_file": context["file"],
             "host_id": context["host"],
-            "user_context": None,
-            "artifact_timestamp": datetime.now(timezone.utc),
+            "user_context": user,
+            "artifact_timestamp": context.get("parsed_timestamp") or datetime.now(timezone.utc),
             "artifact_path": context["file"],
-            "content_summary": "Process execution activity detected",
-            "raw_content": line.strip(),
-            "md5": None, "sha1": None, "sha256": None,
-            "metadata": {},
-            "ingested_at": datetime.now(timezone.utc)
+            "content_summary": summary,
+            "raw_content": line.strip()[:2000],
+            "md5": None,
+            "sha1": None,
+            "sha256": None,
+            "metadata": {
+                "event_type": event_type,
+                "command": matched_command,
+                "user": user,
+                "detector": self.detector_name,
+            },
+            "ingested_at": datetime.now(timezone.utc),
         }

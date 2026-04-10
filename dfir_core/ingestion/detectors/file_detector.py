@@ -1,78 +1,90 @@
-#
-#   Crafted On Wed Jan 07 2026
-#   From his finger tips, through his IDE to your deployment environment at full throttle with no bugs, loss of data,
-#   fluctuations, signal interference, or doubt—it can only be
-#   the legendary coding wizard, Martin Mbithi (martin@devlan.co.ke, www.martmbithi.github.io)
-#   
-#   www.devlan.co.ke
-#   hello@devlan.co.ke
-#
-#
-#   The Devlan Solutions LTD Super Duper User License Agreement
-#   Copyright (c) 2022 Devlan Solutions LTD
-#
-#
-#   1. LICENSE TO BE AWESOME
-#   Congrats, you lucky human! Devlan Solutions LTD hereby bestows upon you the magical,
-#   revocable, personal, non-exclusive, and totally non-transferable right to install this epic system
-#   on not one, but TWO separate computers for your personal, non-commercial shenanigans.
-#   Unless, of course, you've leveled up with a commercial license from Devlan Solutions LTD.
-#   Sharing this software with others or letting them even peek at it? Nope, that's a big no-no.
-#   And don't even think about putting this on a network or letting a crowd join the fun unless you
-#   first scored a multi-user license from us. Sharing is caring, but rules are rules!
-#
-#   2. COPYRIGHT POWER-UP
-#   This Software is the prized possession of Devlan Solutions LTD and is shielded by copyright law
-#   and the forces of international copyright treaties. You better not try to hide or mess with
-#   any of our awesome proprietary notices, labels, or marks. Respect the swag!
-#
-#
-#   3. RESTRICTIONS, NO CHEAT CODES ALLOWED
-#   You may not, and you shall not let anyone else:
-#   (a) reverse engineer, decompile, decode, decrypt, disassemble, or do any sneaky stuff to
-#   figure out the source code of this software;
-#   (b) modify, remix, distribute, or create your own funky version of this masterpiece;
-#   (c) copy (except for that one precious backup), distribute, show off in public, transmit, sell, rent,
-#   lease, or otherwise exploit the Software like it's your own.
-#
-#
-#   4. THE ENDGAME
-#   This License lasts until one of us says 'Game Over'. You can call it quits anytime by
-#   destroying the Software and all the copies you made (no hiding them under your bed).
-#   If you break any of these sacred rules, this License self-destructs, and you must obliterate
-#   every copy of the Software, no questions asked.
-#
-#
-#   5. NO GUARANTEES, JUST PIXELS
-#   DEVLAN SOLUTIONS LTD doesn’t guarantee this Software is flawless—it might have a few
-#   quirks, but who doesn’t? DEVLAN SOLUTIONS LTD washes its hands of any other warranties,
-#   implied or otherwise. That means no promises of perfect performance, marketability, or
-#   non-infringement. Some places have different rules, so you might have extra rights, but don’t
-#   count on us for backup if things go sideways. Use at your own risk, brave adventurer!
-#
-#
-#   6. SEVERABILITY—KEEP THE GOOD STUFF
-#   If any part of this License gets tossed out by a judge, don’t worry—the rest of the agreement
-#   still stands like a boss. Just because one piece fails doesn’t mean the whole thing crumbles.
-#
-#
-#   7. NO DAMAGE, NO DRAMA
-#   Under no circumstances will Devlan Solutions LTD or its squad be held responsible for any wild,
-#   indirect, or accidental chaos that might come from using this software—even if we warned you!
-#   And if you ever think you’ve got a claim, the most you’re getting out of us is the license fee you
-#   paid—if any. No drama, no big payouts, just pixels and code.
-#
-#
+# 2:22 DFIR Framework — File System Activity Detector
+# Detects file system operations relevant to forensic investigation
 
+import re
 import uuid
 from datetime import datetime, timezone
 from .base_detector import BaseDetector
 
-class FileDetector(BaseDetector):
-    def matches(self, line):
-        return any(x in line.lower() for x in ["chmod", "chown", "open", "delete", "create"])
+FILE_PATTERNS = {
+    "FILE_CREATION": [
+        re.compile(r"(?:creat|touch|mkdir)\s+(.+?)(?:\s|$)", re.I),
+        re.compile(r"open\(.*O_CREAT", re.I),
+    ],
+    "FILE_DELETION": [
+        re.compile(r"(?:rm|unlink|rmdir|shred)\s+(.+?)(?:\s|$)", re.I),
+        re.compile(r"delet(?:e|ed|ing)\s+(.+?)(?:\s|$)", re.I),
+    ],
+    "FILE_MODIFICATION": [
+        re.compile(r"(?:chmod|chown|chgrp)\s+(.+?)(?:\s|$)", re.I),
+        re.compile(r"(?:mv|rename)\s+(.+?)(?:\s|$)", re.I),
+        re.compile(r"write\(|truncate\(|modify", re.I),
+    ],
+    "SENSITIVE_ACCESS": [
+        re.compile(r"(?:/etc/passwd|/etc/shadow|/etc/sudoers)", re.I),
+        re.compile(r"(?:\.ssh/|authorized_keys|id_rsa|known_hosts)", re.I),
+        re.compile(r"(?:\.bash_history|\.zsh_history|\.bashrc|\.profile)", re.I),
+        re.compile(r"(?:wp-config|\.env|config\.php|settings\.py|\.htaccess)", re.I),
+        re.compile(r"(?:SAM|SYSTEM|SECURITY|NTDS\.dit)", re.I),
+    ],
+    "ARCHIVE_OPERATION": [
+        re.compile(r"(?:tar|zip|gzip|bzip2|7z|rar)\s+", re.I),
+        re.compile(r"(?:compress|archive|pack)", re.I),
+    ],
+    "EXECUTABLE_DROP": [
+        re.compile(r"(?:\.exe|\.dll|\.so|\.sh|\.py|\.pl|\.rb|\.php)\s*$", re.I),
+        re.compile(r"/tmp/.*(?:\.sh|\.py|\.elf|payload)", re.I),
+        re.compile(r"(?:chmod\s+[+]?[0-7]*[xX]|chmod\s+755|chmod\s+777)", re.I),
+    ],
+}
 
-    def parse(self, line, context):
+SENSITIVE_PATHS = [
+    "/etc/passwd", "/etc/shadow", "/etc/sudoers",
+    "/var/log/", "/tmp/", "/dev/shm/",
+    ".ssh/", "authorized_keys", "id_rsa",
+    "wp-config", ".env", ".htaccess",
+]
+
+
+class FileDetector(BaseDetector):
+    """Detects file system operations relevant to forensic investigation."""
+
+    def matches(self, line: str) -> bool:
+        lower = line.lower()
+        return any(kw in lower for kw in [
+            "chmod", "chown", "chgrp", "open(", "creat", "unlink",
+            "delete", "rm ", "mkdir", "rmdir", "rename", "mv ",
+            "touch ", "write(", "truncat", "shred",
+            "/etc/passwd", "/etc/shadow", ".ssh/",
+            "authorized_keys", "id_rsa", "wp-config",
+            ".env", ".htaccess", "tar ", "zip ", "gzip",
+        ])
+
+    def parse(self, line: str, context: dict) -> dict:
+        event_type = "FILE_EVENT"
+        target_path = None
+
+        for etype, patterns in FILE_PATTERNS.items():
+            for pat in patterns:
+                m = pat.search(line)
+                if m:
+                    event_type = etype
+                    if m.groups():
+                        target_path = m.group(1)[:300]
+                    break
+            if event_type != "FILE_EVENT":
+                break
+
+        # Check for sensitive path access
+        lower = line.lower()
+        sensitive = any(sp in lower for sp in SENSITIVE_PATHS)
+
+        summary = event_type
+        if target_path:
+            summary += f": {target_path[:120]}"
+        if sensitive:
+            summary += " [SENSITIVE PATH]"
+
         return {
             "artifact_id": str(uuid.uuid4()),
             "case_id": context["case_id"],
@@ -81,11 +93,18 @@ class FileDetector(BaseDetector):
             "source_file": context["file"],
             "host_id": context["host"],
             "user_context": None,
-            "artifact_timestamp": datetime.now(timezone.utc),
+            "artifact_timestamp": context.get("parsed_timestamp") or datetime.now(timezone.utc),
             "artifact_path": context["file"],
-            "content_summary": "File system activity detected",
-            "raw_content": line.strip(),
-            "md5": None, "sha1": None, "sha256": None,
-            "metadata": {},
-            "ingested_at": datetime.now(timezone.utc)
+            "content_summary": summary,
+            "raw_content": line.strip()[:2000],
+            "md5": None,
+            "sha1": None,
+            "sha256": None,
+            "metadata": {
+                "event_type": event_type,
+                "target_path": target_path,
+                "sensitive_path_access": sensitive,
+                "detector": self.detector_name,
+            },
+            "ingested_at": datetime.now(timezone.utc),
         }
